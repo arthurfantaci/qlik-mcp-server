@@ -126,7 +126,7 @@ Once configured, you can use natural language to access all tools:
 
 **📊 Analyze Measures:**
 ```text
-"Get all measures from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1 with expressions and tags"
+"Get all measures from Qlik app 12345678-abcd-1234-efgh-123456789abc with expressions and tags"
 ```
 
 **🔧 Review Variables:**
@@ -237,7 +237,7 @@ The fields tool will return:
 
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "measures": [
     {
       "id": "measure_id",
@@ -263,7 +263,7 @@ The fields tool will return:
 {
   "applications": [
     {
-      "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+      "app_id": "12345678-abcd-1234-efgh-123456789abc",
       "name": "Financial Dashboard",
       "last_reload_time": "2024-01-20T10:30:00Z",
       "meta": {},
@@ -279,7 +279,7 @@ The fields tool will return:
 
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "variables": [
     {
       "name": "vGoldSchema",
@@ -304,7 +304,7 @@ The fields tool will return:
 
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "fields": [
     {
       "name": "interval_key",
@@ -331,6 +331,173 @@ The fields tool will return:
     "show_semantic": true,
     "show_src_tables": true,
     "show_implicit": true
+  }
+}
+```
+
+### `get_app_sheets` Response
+
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "sheets": [
+    {
+      "id": "sheet_abc123",
+      "title": "Overview Dashboard",
+      "description": "Main overview of key metrics",
+      "rank": 0,
+      "columns": 24,
+      "rows": 12,
+      "meta": {
+        "created": "2024-01-15T09:00:00Z",
+        "modified": "2024-01-20T10:30:00Z",
+        "published": true
+      }
+    }
+  ],
+  "count": 3,
+  "retrieved_at": "2024-01-20T10:30:00Z",
+  "options": {
+    "include_thumbnail": false,
+    "include_metadata": true
+  }
+}
+```
+
+### `get_sheet_objects` Response
+
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "sheet_id": "sheet_abc123",
+  "objects": [
+    {
+      "id": "object_xyz789",
+      "type": "barchart",
+      "title": "Sales by Region",
+      "subtitle": "Last 12 months",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 6
+      },
+      "properties": {
+        "dimensions": ["Region"],
+        "measures": ["Sum(Sales)"],
+        "color": {
+          "auto": true
+        }
+      },
+      "layout": {
+        "visualization": "barchart",
+        "version": "1.0"
+      }
+    }
+  ],
+  "count": 12,
+  "retrieved_at": "2024-01-20T10:30:00Z",
+  "options": {
+    "include_properties": true,
+    "include_layout": true,
+    "include_data": false
+  }
+}
+```
+
+### `get_app_dimensions` Response
+
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "dimensions": [
+    {
+      "id": "dim_product_category",
+      "title": "Product Category",
+      "description": "Product categorization hierarchy",
+      "grouping": "N",
+      "field_defs": ["Category"],
+      "field_labels": ["Product Category"],
+      "tags": ["product", "hierarchy"],
+      "meta": {
+        "created": "2024-01-10T14:30:00Z",
+        "approved": true
+      }
+    }
+  ],
+  "count": 23,
+  "retrieved_at": "2024-01-20T10:30:00Z",
+  "options": {
+    "include_title": true,
+    "include_tags": true,
+    "include_grouping": true,
+    "include_info": true
+  }
+}
+```
+
+### `get_app_script` Response
+
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "script": "// Main data loading script\n\n// Load sales data\nSales:\nLOAD\n    OrderID,\n    CustomerID,\n    ProductID,\n    Quantity,\n    UnitPrice,\n    OrderDate\nFROM [lib://DataFiles/sales.qvd] (qvd);\n\n// Load customer data\nCustomers:\nLOAD\n    CustomerID,\n    CustomerName,\n    Region,\n    Country\nFROM [lib://DataFiles/customers.xlsx]\n(ooxml, embedded labels, table is Customers);\n",
+  "script_length": 245,
+  "retrieved_at": "2024-01-20T10:30:00Z"
+}
+```
+
+### `get_app_data_sources` Response
+
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "data_sources": [
+    {
+      "name": "sales.qvd",
+      "type": "file",
+      "connection_string": "lib://DataFiles/sales.qvd",
+      "statement": "LOAD * FROM [lib://DataFiles/sales.qvd] (qvd);",
+      "discrimination": {
+        "type": "DataConnection",
+        "label": "QVD file source"
+      }
+    },
+    {
+      "name": "CustomerAnalytics.qvf",
+      "type": "binary",
+      "connection_string": "lib://Apps/CustomerAnalytics.qvf",
+      "statement": "binary [lib://Apps/CustomerAnalytics.qvf];",
+      "discrimination": {
+        "type": "BinaryLoad",
+        "label": "Binary application load"
+      }
+    },
+    {
+      "name": "TempTable",
+      "type": "resident",
+      "connection_string": "Resident SalesData",
+      "statement": "LOAD CustomerID, Sum(Amount) as TotalSales RESIDENT SalesData GROUP BY CustomerID;",
+      "discrimination": {
+        "type": "ResidentLoad",
+        "label": "Resident table transformation"
+      }
+    }
+  ],
+  "source_counts": {
+    "binary": 1,
+    "file": 3,
+    "resident": 8,
+    "inline": 1,
+    "other": 0
+  },
+  "total_sources": 13,
+  "retrieved_at": "2024-01-20T10:30:00Z",
+  "options": {
+    "include_resident": true,
+    "include_file": true,
+    "include_binary": true,
+    "include_inline": true
   }
 }
 ```
@@ -433,10 +600,15 @@ To add more Qlik tools:
 
 ### Available Tools
 
-1. **get_app_measures**: Retrieves all measures from a specific Qlik application
-2. **list_qlik_applications**: Lists all available Qlik applications with names and IDs
+1. **list_qlik_applications**: Lists all available Qlik applications with names and IDs
+2. **get_app_measures**: Retrieves all measures from a specific Qlik application
 3. **get_app_variables**: Retrieves all variables from a specific Qlik application
 4. **get_app_fields**: Retrieves all fields and table information from a specific Qlik application
+5. **get_app_sheets**: Retrieves all sheets from a specific Qlik application with metadata
+6. **get_sheet_objects**: Retrieves all visualization objects from a specific sheet with detailed properties
+7. **get_app_dimensions**: Retrieves all dimensions from a specific Qlik application with metadata
+8. **get_app_script**: Retrieves the complete data loading script from a specific Qlik application
+9. **get_app_data_sources**: Retrieves data sources from the application's lineage (LOAD/STORE statements)
 
 ## Limitations
 
