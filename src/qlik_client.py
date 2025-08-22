@@ -1030,7 +1030,7 @@ def test_connection():
     client = QlikClient()
     
     # Test with a sample app ID (replace with actual app ID)
-    test_app_id = "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"
     
     try:
         if client.connect(test_app_id):

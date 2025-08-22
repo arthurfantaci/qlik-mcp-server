@@ -1,5 +1,9 @@
 # Qlik MCP Server
 
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![MCP](https://img.shields.io/badge/MCP-compatible-brightgreen)
+
 A comprehensive MCP (Model Context Protocol) server that provides complete access to Qlik Sense applications and their detailed information for AI assistants and other MCP clients.
 
 ## Features

@@ -19,7 +19,7 @@ async def test_mcp_tool():
     print("TESTING MCP TOOL FUNCTION")
     print("="*60)
     
-    app_id = "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+    app_id = "12345678-abcd-1234-efgh-123456789abc"
     
     print(f"\n🔧 Testing get_app_measures tool with app: {app_id}")
     

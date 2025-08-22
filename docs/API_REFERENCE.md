@@ -29,7 +29,7 @@ Lists all available Qlik Sense applications.
 {
   "applications": [
     {
-      "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+      "app_id": "12345678-abcd-1234-efgh-123456789abc",
       "name": "Financial Dashboard",
       "last_reload_time": "2024-01-20T10:30:00Z",
       "meta": {},
@@ -55,7 +55,7 @@ Retrieves all measures from a specific Qlik Sense application.
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "measures": [
     {
       "id": "measure_id",
@@ -91,7 +91,7 @@ Retrieves all variables from a specific Qlik Sense application.
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "variables": [
     {
       "name": "vGoldSchema",
@@ -130,7 +130,7 @@ Retrieves all fields and table information from a specific Qlik Sense applicatio
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "fields": [
     {
       "name": "interval_key",
@@ -174,7 +174,7 @@ Retrieves all sheets from a specific Qlik Sense application.
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "sheets": [
     {
       "id": "sheet_id",
@@ -215,7 +215,7 @@ Retrieves all visualization objects from a specific sheet.
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "sheet_id": "sheet_id",
   "objects": [
     {
@@ -261,7 +261,7 @@ Retrieves all dimensions from a specific Qlik Sense application.
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "dimensions": [
     {
       "id": "dimension_id",
@@ -296,7 +296,7 @@ Retrieves the complete data loading script from a specific Qlik Sense applicatio
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "script": "// Main data loading script\nLOAD * FROM 'data.qvd' (qvd);\n",
   "script_length": 39439,
   "retrieved_at": "2024-01-20T10:30:00Z"
@@ -319,7 +319,7 @@ Retrieves data sources and lineage information from a specific Qlik Sense applic
 **Response**:
 ```json
 {
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1",
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "data_sources": [
     {
       "name": "data_source_name",
@@ -359,7 +359,7 @@ All tools return consistent error responses when issues occur:
   "error": "Connection failed",
   "details": "Unable to connect to Qlik server at server.example.com:4747",
   "timestamp": "2024-01-20T10:30:00Z",
-  "app_id": "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+  "app_id": "12345678-abcd-1234-efgh-123456789abc"
 }
 ```
 

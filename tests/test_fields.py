@@ -15,7 +15,7 @@ async def test_get_fields():
     """Test the get_app_fields tool function"""
     
     # Use the same test app as other tests
-    test_app_id = "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"
     
     print("🚀 TESTING FIELD LIST FUNCTIONALITY")
     print("=" * 60)

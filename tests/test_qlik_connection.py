@@ -16,7 +16,7 @@ def test_qlik_connection(app_id: str = None):
     
     # Use provided app_id or default test app
     if not app_id:
-        app_id = "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+        app_id = "12345678-abcd-1234-efgh-123456789abc"
         print(f"No app_id provided, using test app: {app_id}")
     
     print("\n" + "="*60)

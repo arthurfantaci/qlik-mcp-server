@@ -31,7 +31,7 @@ async def demonstrate_both_tools():
         print(f"✅ Found {apps_result['count']} applications")
         
         # Find our test app
-        test_app_id = "fb41d1e1-38fb-4595-8391-2f1a536bceb1"
+        test_app_id = "12345678-abcd-1234-efgh-123456789abc"
         test_app = None
         
         for app in apps_result['applications']:
