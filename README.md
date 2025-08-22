@@ -193,6 +193,49 @@ The fields tool will return:
 - Field cardinality and tags
 - Data model structure for analysis
 
+The sheets tool will return:
+
+- Sheet IDs and titles
+- Sheet descriptions and metadata
+- Layout information (columns, rows)
+- Publication status and creation dates
+- Total count of sheets
+
+The sheet objects tool will return:
+
+- Visualization object IDs and types
+- Object titles and subtitles
+- Position and sizing information
+- Object properties and layout details
+- Dimension and measure configurations
+- Total count of objects on the sheet
+
+The dimensions tool will return:
+
+- Dimension IDs and titles
+- Dimension descriptions and definitions
+- Field definitions and labels
+- Grouping information and hierarchy
+- Tags and metadata
+- Total count of dimensions
+
+The script tool will return:
+
+- Complete data loading script content
+- Script length in characters
+- All LOAD statements and transformations
+- Data connection strings and sources
+- Variable definitions and SET statements
+
+The data sources tool will return:
+
+- Data source names and types
+- Connection strings and statements
+- Source categorization (file, binary, resident, inline)
+- Source counts by type
+- Lineage and dependency information
+- Total count of all data sources
+
 ## Tool Parameters
 
 ### `get_app_measures` Tool
@@ -230,6 +273,50 @@ The fields tool will return:
 | `show_semantic` | boolean | No | Include semantic fields (default: true) |
 | `show_src_tables` | boolean | No | Include source table information (default: true) |
 | `show_implicit` | boolean | No | Include implicit fields (default: true) |
+
+### `get_app_sheets` Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `app_id` | string | Yes | Qlik Sense application ID |
+| `include_thumbnail` | boolean | No | Include sheet thumbnail images (default: false) |
+| `include_metadata` | boolean | No | Include detailed metadata (default: true) |
+
+### `get_sheet_objects` Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `app_id` | string | Yes | Qlik Sense application ID |
+| `sheet_id` | string | Yes | Sheet ID to retrieve objects from |
+| `include_properties` | boolean | No | Include object properties (default: true) |
+| `include_layout` | boolean | No | Include object layout information (default: true) |
+| `include_data` | boolean | No | Include data definitions (default: false) |
+
+### `get_app_dimensions` Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `app_id` | string | Yes | Qlik Sense application ID |
+| `include_title` | boolean | No | Include dimension titles (default: true) |
+| `include_tags` | boolean | No | Include dimension tags (default: true) |
+| `include_grouping` | boolean | No | Include grouping information (default: true) |
+| `include_info` | boolean | No | Include additional metadata (default: true) |
+
+### `get_app_script` Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `app_id` | string | Yes | Qlik Sense application ID |
+
+### `get_app_data_sources` Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `app_id` | string | Yes | Qlik Sense application ID |
+| `include_resident` | boolean | No | Include resident table sources (default: true) |
+| `include_file` | boolean | No | Include file-based sources (default: true) |
+| `include_binary` | boolean | No | Include binary load sources (default: true) |
+| `include_inline` | boolean | No | Include inline data sources (default: true) |
 
 ## Response Formats
 
