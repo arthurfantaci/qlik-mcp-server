@@ -351,13 +351,13 @@ The data sources tool will return:
   "applications": [
     {
       "app_id": "12345678-abcd-1234-efgh-123456789abc",
-      "name": "Financial Dashboard",
+      "name": "CRM Dashboard",
       "last_reload_time": "2024-01-20T10:30:00Z",
       "meta": {},
       "doc_type": ""
     }
   ],
-  "count": 148,
+  "count": 50,
   "retrieved_at": "2024-01-20T10:30:00Z"
 }
 ```
@@ -369,14 +369,14 @@ The data sources tool will return:
   "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "variables": [
     {
-      "name": "vGoldSchema",
-      "definition": "gold",
+      "name": "vDataSource",
+      "definition": "dev",
       "tags": [],
       "is_reserved": false,
       "is_config": false
     }
   ],
-  "count": 65,
+  "count": 25,
   "retrieved_at": "2024-01-20T10:30:00Z",
   "options": {
     "include_definition": true,
@@ -394,8 +394,8 @@ The data sources tool will return:
   "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "fields": [
     {
-      "name": "interval_key",
-      "source_tables": ["qv_financial_fact_derived", "qv_finance_placement_interval"],
+      "name": "customer_id",
+      "source_tables": ["fact_crm", "dim_customer"],
       "is_system": false,
       "is_hidden": false,
       "is_numeric": true,
@@ -404,12 +404,11 @@ The data sources tool will return:
     }
   ],
   "tables": [
-    "qv_financial_fact_derived",
-    "qv_finance_placement_interval",
-    "monthly_inventory_snapshot"
+    "fact_transactions",
+    "dim_customer_details"
   ],
-  "field_count": 88,
-  "table_count": 14,
+  "field_count": 60,
+  "table_count": 10,
   "retrieved_at": "2024-01-20T10:30:00Z",
   "options": {
     "show_system": true,
@@ -430,11 +429,11 @@ The data sources tool will return:
   "sheets": [
     {
       "id": "sheet_abc123",
-      "title": "Overview Dashboard",
-      "description": "Main overview of key metrics",
+      "title": "Summary View",
+      "description": "Summary of OKRs",
       "rank": 0,
-      "columns": 24,
-      "rows": 12,
+      "columns": 14,
+      "rows": 10,
       "meta": {
         "created": "2024-01-15T09:00:00Z",
         "modified": "2024-01-20T10:30:00Z",
@@ -442,7 +441,7 @@ The data sources tool will return:
       }
     }
   ],
-  "count": 3,
+  "count": 5,
   "retrieved_at": "2024-01-20T10:30:00Z",
   "options": {
     "include_thumbnail": false,
@@ -512,7 +511,7 @@ The data sources tool will return:
       }
     }
   ],
-  "count": 23,
+  "count": 30,
   "retrieved_at": "2024-01-20T10:30:00Z",
   "options": {
     "include_title": true,
