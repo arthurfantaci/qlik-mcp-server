@@ -28,17 +28,17 @@ pip install -r requirements.txt
 ### Testing
 Test individual components:
 ```bash
-python test_qlik_connection.py    # Test Qlik connection and measure retrieval
-python test_list_apps.py          # Test application listing
-python test_variables.py          # Test variable retrieval
-python test_fields.py             # Test field list retrieval
-python test_sheets.py             # Test sheet and visualization retrieval
-python test_sheets_dashboard.py   # Test sheet retrieval with dashboard app
-python test_dimensions.py         # Test dimension retrieval
-python test_script.py             # Test script retrieval
-python test_data_sources.py       # Test data sources lineage retrieval
-python test_mcp_tool.py           # Test MCP tool functions directly
-python test_both_tools.py         # Test both tools together
+python tests/test_qlik_connection.py    # Test Qlik connection and measure retrieval
+python tests/test_list_apps.py          # Test application listing
+python tests/test_variables.py          # Test variable retrieval
+python tests/test_fields.py             # Test field list retrieval
+python tests/test_sheets.py             # Test sheet and visualization retrieval
+python tests/test_sheets_dashboard.py   # Test sheet retrieval with dashboard app
+python tests/test_dimensions.py         # Test dimension retrieval
+python tests/test_script.py             # Test script retrieval
+python tests/test_data_sources.py       # Test data sources lineage retrieval
+python tests/test_mcp_tool.py           # Test MCP tool functions directly
+python tests/test_both_tools.py         # Test both tools together
 ```
 
 Test Qlik client directly:
@@ -161,3 +161,14 @@ All 9 tools have been extensively tested with real Qlik Sense applications:
 - Certificate files in `certs/` are excluded from version control
 - Never commit `.env` files or certificates
 - All sensitive configuration is environment-based
+- Example configuration files (.env.example) are provided for setup guidance
+- Comprehensive documentation helps users configure securely
+
+## Public Repository Considerations
+
+This project is designed for public sharing with:
+- **Example configurations** instead of actual sensitive files
+- **Comprehensive documentation** for setup and troubleshooting
+- **Security-first approach** with proper .gitignore exclusions
+- **Clear separation** between public code and private configuration
+- **Production-ready** error handling and validation

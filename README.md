@@ -1,129 +1,167 @@
 # Qlik MCP Server
 
-A lightweight MCP (Model Context Protocol) server that exposes Qlik Sense measure information to AI assistants and other MCP clients.
+A comprehensive MCP (Model Context Protocol) server that provides complete access to Qlik Sense applications and their detailed information for AI assistants and other MCP clients.
 
 ## Features
 
-- 🔌 Direct WebSocket connection to Qlik Sense Enterprise
-- 🔐 Certificate-based authentication
-- 📊 Retrieve all measures from any Qlik Sense application
-- 📋 List all available Qlik applications with names and IDs
-- 🔧 Retrieve all variables from any Qlik Sense application
-- 📊 Retrieve all fields and table information for data model analysis
-- 📄 Retrieve all sheets from any Qlik Sense application
-- 🎨 Retrieve visualization objects with detailed metadata from sheets
-- 🤖 MCP-compatible for use with Claude and other AI tools
-- ⚡ Lightweight and focused implementation
+- 🔌 **Direct WebSocket connection** to Qlik Sense Enterprise
+- 🔐 **Certificate-based authentication** with SSL security
+- 📊 **9 comprehensive tools** covering all major Qlik Sense objects:
+  - 📋 List all available applications with metadata
+  - 📊 Retrieve measures with expressions and tags
+  - 🔧 Retrieve variables with definitions and configurations
+  - 📊 Retrieve fields and complete data model information
+  - 📄 Retrieve sheets with metadata and properties
+  - 🎨 Retrieve visualization objects from sheets with detailed properties
+  - 📐 Retrieve dimensions with grouping and metadata
+  - 📜 Retrieve complete data loading scripts
+  - 🔗 Retrieve data sources and lineage information
+- 🤖 **MCP-compatible** for use with Claude Desktop and other AI tools
+- ⚡ **Production-ready** with comprehensive error handling
+- 🧪 **Extensively tested** with real Qlik Sense applications
 
 ## Prerequisites
 
-- Python 3.8+
+- **Python 3.10+** (required for FastMCP)
 - Access to Qlik Sense Enterprise server
-- Valid Qlik client certificates
+- Valid Qlik client certificates (see [Certificate Setup Guide](docs/CERTIFICATES.md))
 - MCP-compatible client (e.g., Claude Desktop)
 
-## Installation
+## Quick Start
 
-1. **Clone or download this repository**:
-
-   ```bash
-   cd qlik-mcp-server
-   ```
-
-2. **Install dependencies**:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure certificates**:
-   - Ensure your Qlik certificates are in the `certs/` directory:
-     - `root.pem` - Root certificate
-     - `client.pem` - Client certificate
-     - `client_key.pem` - Client private key
-
-4. **Configure environment**:
-   - Edit `.env` file with your Qlik server details:
-
-   ```env
-   QLIK_SERVER_URL=your.qlik.server.ip
-   QLIK_SERVER_PORT=4747
-   QLIK_USER_DIRECTORY=INTERNAL
-   QLIK_USER_ID=sa_engine
-   ```
-
-## Usage
-
-### Testing the Connection
-
-Test the Qlik connection directly:
+### 1. Installation
 
 ```bash
-python -m src.qlik_client
+# Clone the repository
+git clone https://github.com/arthurfantaci/qlik-mcp-server.git
+cd qlik-mcp-server
+
+# Install dependencies (Python 3.10+ required)
+pip install -r requirements.txt
 ```
+
+### 2. Configuration
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env with your Qlik Sense server details
+# See .env.example for detailed configuration instructions
+```
+
+### 3. Certificate Setup
+
+Obtain SSL certificates from your Qlik Sense administrator and place them in the `certs/` directory:
+
+```
+certs/
+├── root.pem          # Server root certificate
+├── client.pem        # Client certificate  
+└── client_key.pem    # Client private key
+```
+
+📖 **Detailed certificate setup instructions**: [docs/CERTIFICATES.md](docs/CERTIFICATES.md)
+
+### 4. Test Connection
+
+```bash
+# Test your Qlik Sense connection
+python tests/test_qlik_connection.py
+
+# Test application listing
+python tests/test_list_apps.py
+```
+
+### 5. Configure with Claude Desktop
+
+```bash
+# Copy example configuration to Claude Desktop
+cp examples/claude_desktop_config.json ~/.config/claude_desktop_config.json
+
+# Edit the configuration file to update paths
+# Then restart Claude Desktop
+```
+
+📖 **Detailed configuration examples**: [examples/README.md](examples/README.md)
+
+## Usage
 
 ### Running as MCP Server
 
 Start the MCP server:
 
 ```bash
-python -m src.server
+# Using Python 3.11 (recommended)
+/opt/homebrew/bin/python3.11 -m src.server
+
+# Or using the startup script
+/opt/homebrew/bin/python3.11 start_server.py
 ```
 
-### Configuring with Claude Desktop
+### Available Tools
 
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+The server provides **9 comprehensive tools** for Qlik Sense analysis:
 
-```json
-{
-  "mcpServers": {
-    "qlik-sense": {
-      "command": "python",
-      "args": ["-m", "src.server"],
-      "cwd": "/path/to/qlik-mcp-server"
-    }
-  }
-}
-```
+| Tool | Description |
+|------|-------------|
+| `list_qlik_applications` | List all available applications with metadata |
+| `get_app_measures` | Retrieve measures with expressions and tags |
+| `get_app_variables` | Retrieve variables with definitions and configurations |
+| `get_app_fields` | Retrieve fields and complete data model information |
+| `get_app_sheets` | Retrieve sheets with metadata and properties |
+| `get_sheet_objects` | Retrieve visualization objects with detailed properties |
+| `get_app_dimensions` | Retrieve dimensions with grouping and metadata |
+| `get_app_script` | Retrieve complete data loading scripts |
+| `get_app_data_sources` | Retrieve data sources and lineage information |
 
-### Using the Tools
+### Using with Claude Desktop
 
-Once configured, you can use all six tools in Claude:
+Once configured, you can use natural language to access all tools:
 
-**Get Application Measures:**
-
+**🔍 Explore Applications:**
 ```text
-"Can you get all measures from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1?"
+"Show me all available Qlik Sense applications"
 ```
 
-**List All Applications:**
-
+**📊 Analyze Measures:**
 ```text
-"Can you get a list of all Qlik Sense applications along with the app ids?"
+"Get all measures from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1 with expressions and tags"
 ```
 
-**Get Application Variables:**
-
+**🔧 Review Variables:**
 ```text
-"Can you get all variables from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1?"
+"Show me all variables in the application including their definitions"
 ```
 
-**Get Application Fields:**
-
+**📊 Examine Data Model:**
 ```text
-"Can you get all fields and table information from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1?"
+"Get all fields and table information to understand the data model structure"
 ```
 
-**Get Application Sheets:**
-
+**📄 Review Sheets:**
 ```text
-"Can you get all sheets from Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1?"
+"List all sheets in the application with their metadata"
 ```
 
-**Get Sheet Objects:**
-
+**🎨 Analyze Visualizations:**
 ```text
-"Can you get all visualization objects from sheet 'sheet123' in Qlik app fb41d1e1-38fb-4595-8391-2f1a536bceb1?"
+"Get all visualization objects from sheet 'Overview' with their properties and layout"
+```
+
+**📐 Study Dimensions:**
+```text
+"Show me all dimensions with their grouping and metadata information"
+```
+
+**📜 Review Data Loading:**
+```text
+"Get the complete data loading script for this application"
+```
+
+**🔗 Understand Data Sources:**
+```text
+"Show me all data sources and their lineage, including binary and file sources"
 ```
 
 The measures tool will return:
@@ -301,16 +339,39 @@ The fields tool will return:
 
 ```text
 qlik-mcp-server/
-├── src/
+├── src/                    # Core application code
 │   ├── __init__.py         # Package initialization
-│   ├── server.py           # MCP server implementation
-│   ├── qlik_client.py      # Qlik WebSocket client
-│   └── tools.py            # MCP tool definitions
-├── certs/                  # Qlik certificates (gitignored)
-├── .env                    # Configuration (gitignored)
-├── .gitignore             # Git ignore rules
-├── requirements.txt        # Python dependencies
-└── README.md              # This file
+│   ├── server.py           # FastMCP server implementation
+│   ├── qlik_client.py      # Qlik Engine API WebSocket client
+│   └── tools.py            # MCP tool definitions and implementations
+├── tests/                  # Test suite
+│   ├── test_qlik_connection.py    # Test basic connection
+│   ├── test_list_apps.py          # Test application listing
+│   ├── test_measures.py           # Test measure retrieval
+│   ├── test_variables.py          # Test variable retrieval
+│   ├── test_fields.py             # Test field retrieval
+│   ├── test_sheets.py             # Test sheet retrieval
+│   ├── test_dimensions.py         # Test dimension retrieval
+│   ├── test_script.py             # Test script retrieval
+│   ├── test_data_sources.py       # Test data source retrieval
+│   ├── test_mcp_tool.py           # Test MCP tool functions
+│   └── test_both_tools.py         # Test multiple tools together
+├── examples/               # Configuration examples
+│   ├── claude_desktop_config.json # Claude Desktop configuration
+│   └── README.md           # Configuration instructions
+├── docs/                   # Documentation
+│   └── CERTIFICATES.md     # Certificate setup guide
+├── certs/                  # SSL certificates (gitignored)
+│   ├── root.pem           # Server root certificate
+│   ├── client.pem         # Client certificate
+│   └── client_key.pem     # Client private key
+├── .env.example           # Example environment configuration
+├── .env                   # Environment configuration (gitignored)
+├── .gitignore            # Git ignore rules
+├── requirements.txt       # Python dependencies
+├── start_server.py       # Server startup script
+├── CLAUDE.md             # Claude Code instructions
+└── README.md             # This documentation
 ```
 
 ## Security
@@ -339,34 +400,27 @@ qlik-mcp-server/
 
 ### Running Tests
 
-Test the Qlik connection and measure retrieval:
+Comprehensive test suite for all tools:
 
 ```bash
-python test_qlik_connection.py
-```
+# Test basic Qlik connection
+python tests/test_qlik_connection.py
 
-Test application listing:
+# Test individual tools
+python tests/test_list_apps.py          # Application listing
+python tests/test_variables.py          # Variable retrieval  
+python tests/test_fields.py             # Field and table information
+python tests/test_sheets.py             # Sheet metadata
+python tests/test_dimensions.py         # Dimension analysis
+python tests/test_script.py             # Script retrieval
+python tests/test_data_sources.py       # Data source lineage
 
-```bash
-python test_list_apps.py
-```
+# Test MCP functionality
+python tests/test_mcp_tool.py           # Direct tool functions
+python tests/test_both_tools.py         # Multiple tools together
 
-Test variable retrieval:
-
-```bash
-python test_variables.py
-```
-
-Test field list retrieval:
-
-```bash
-python test_fields.py
-```
-
-Test MCP tool functions directly:
-
-```bash
-python test_mcp_tool.py
+# Test Qlik client directly
+python -m src.qlik_client
 ```
 
 ### Adding New Tools

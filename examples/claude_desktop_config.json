@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "qlik-sense": {
+      "command": "/opt/homebrew/bin/python3.11",
+      "args": ["-m", "src.server"],
+      "cwd": "/path/to/your/qlik-mcp-server",
+      "env": {
+        "PYTHONPATH": "/path/to/your/qlik-mcp-server"
+      }
+    }
+  }
+}
