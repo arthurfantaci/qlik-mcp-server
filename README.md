@@ -711,7 +711,7 @@ This is a lightweight pilot implementation with intentional limitations:
 
 Potential improvements for production use:
 
-- Add tools for dimensions, sheets, and other Qlik objects
+- Add tools for other Qlik objects
 - Implement connection pooling
 - Add comprehensive error handling and retry logic
 - Cache frequently accessed data
