@@ -23,42 +23,40 @@ The server is named `qlik-sense` to reflect its expanding scope beyond just meas
 ### Setup and Installation
 ```bash
 pip install -r requirements.txt
+cp .env.example .env  # Configure with your Qlik server details
 ```
 
 ### Testing
-Test individual components:
 ```bash
-python tests/test_qlik_connection.py    # Test Qlik connection and measure retrieval
-python tests/test_list_apps.py          # Test application listing
-python tests/test_variables.py          # Test variable retrieval
-python tests/test_fields.py             # Test field list retrieval
-python tests/test_sheets.py             # Test sheet and visualization retrieval
-python tests/test_sheets_dashboard.py   # Test sheet retrieval with dashboard app
-python tests/test_dimensions.py         # Test dimension retrieval
-python tests/test_script.py             # Test script retrieval
-python tests/test_data_sources.py       # Test data sources lineage retrieval
-python tests/test_mcp_tool.py           # Test MCP tool functions directly
-python tests/test_both_tools.py         # Test both tools together
-```
+# Test individual tools (most commonly used)
+python tests/test_qlik_connection.py    # Basic connection validation
+python tests/test_list_apps.py          # Application listing
+python tests/test_measures.py           # Measure retrieval
+python tests/test_mcp_tool.py           # MCP tool functions directly
 
-Test Qlik client directly:
-```bash
-python -m src.qlik_client
+# Test all tools comprehensively
+python tests/test_variables.py          # Variables
+python tests/test_fields.py             # Fields and data model
+python tests/test_sheets.py             # Sheets and visualizations
+python tests/test_dimensions.py         # Dimensions
+python tests/test_script.py             # Data loading scripts
+python tests/test_data_sources.py       # Data source lineage
+
+# Test multiple tools together
+python tests/test_both_tools.py
 ```
 
 ### Running the Server
-Start the MCP server (requires Python 3.10+):
 ```bash
-# Using Python 3.11 (recommended)
+# Requires Python 3.10+ for FastMCP
 /opt/homebrew/bin/python3.11 -m src.server
-
-# Or using the startup script
-/opt/homebrew/bin/python3.11 start_server.py
+# Alternative: /opt/homebrew/bin/python3.11 start_server.py
 ```
 
-**Note:** The project requires Python 3.10+ due to FastMCP dependencies. If you have Python 3.9 or older, install Python 3.11 via Homebrew:
+### Debugging
 ```bash
-brew install python@3.11
+# Test Qlik client connection directly
+python -m src.qlik_client
 ```
 
 ## Architecture
@@ -86,18 +84,22 @@ brew install python@3.11
 6. For sheet objects: Get sheet object, retrieve child objects with layout and properties
 7. Always disconnect after operations
 
-### Tool Parameter Handling
+### Tool Implementation Patterns
 
-- `get_app_measures`: Requires `app_id`, optional `include_expression` and `include_tags` 
-- `list_qlik_applications`: No parameters required
-- `get_app_variables`: Requires `app_id`, optional `include_definition`, `include_tags`, `show_reserved`, `show_config`
-- `get_app_fields`: Requires `app_id`, optional visibility flags for different field types and table information
-- `get_app_sheets`: Requires `app_id`, optional `include_thumbnail` and `include_metadata`
-- `get_sheet_objects`: Requires `app_id` and `sheet_id`, optional flags for properties, layout, and data definitions
-- `get_app_dimensions`: Requires `app_id`, optional `include_title`, `include_tags`, `include_grouping`, `include_info`
-- `get_app_script`: Requires `app_id` only
-- `get_app_data_sources`: Requires `app_id`, optional flags for including different source types (resident, file, binary, inline)
-- All tools return structured JSON with comprehensive error handling
+**Parameter Validation**: All tools use Pydantic models (defined in `tools.py`) for parameter validation and type safety.
+
+**Common Parameters**:
+- All tools except `list_qlik_applications` require `app_id`
+- Most tools have optional boolean flags to control response detail level
+- `get_sheet_objects` uniquely requires both `app_id` and `sheet_id`
+
+**API Access Patterns**:
+- **Session Objects**: Measures, variables, dimensions, fields use `CreateSessionObject` + `GetLayout`
+- **Handle-Based**: Sheets and sheet objects use `GetObject` by handle + `GetLayout`
+- **Direct API**: Scripts use `GetScript`, data sources use `GetLineage`
+- **Global Context**: Application listing uses global connection + `GetDocList`
+
+**Error Handling**: All tools return structured JSON with comprehensive error handling and graceful fallbacks.
 
 ### Environment Configuration
 
@@ -112,49 +114,41 @@ Certificate paths (relative to project root):
 - `QLIK_CERT_CLIENT` - Client certificate (default: certs/client.pem)
 - `QLIK_CERT_KEY` - Client private key (default: certs/client_key.pem)
 
-## Recent Technical Improvements
+## Key Development Considerations
 
-### Complete Qlik Sense Application Analysis Suite
+### Adding New Tools
 
-The MCP server has evolved into a comprehensive Qlik Sense analysis platform with three major development phases:
+When adding new Qlik tools, follow this pattern:
 
-**Phase 1: Core Data Objects (Initial Development)**
-- **Measures and Variables**: Using session objects (MeasureList, VariableList, DimensionList)
-- **Fields and Tables**: Using FieldList for data model analysis
-- **Applications**: Global context listing with GetDocList
+1. **Define Pydantic model** in `tools.py` for parameter validation
+2. **Implement tool function** in `tools.py` using appropriate Qlik API pattern:
+   - Session objects for metadata retrieval (measures, variables, dimensions, fields)
+   - Handle-based access for sheet objects
+   - Direct API calls for scripts and lineage
+3. **Register tool** in `server.py` using `@mcp.tool()` decorator
+4. **Add to TOOL_DEFINITIONS** for metadata
+5. **Create test file** in `tests/` following existing patterns
 
-**Phase 2: Sheet and Visualization Tools** 
-- **Initial Challenge**: SheetList session objects didn't return sheet data
-- **Solution**: Uses `GetAllInfos` → `GetObject` → `GetLayout` sequence for complete metadata
-- **Object Retrieval**: Sheet-based visualization analysis with layout, properties, and data definitions
-- **Advanced Features**: Comprehensive object type detection (charts, filters, containers, custom Vizlib components)
+### Critical Qlik API Patterns
 
-**Phase 3: Script and Data Sources (Latest Enhancement)**
-- **Script Retrieval**: Direct `GetScript` API call for complete data loading scripts
-- **Data Sources Lineage**: `GetLineage` API with intelligent categorization
-- **Advanced Categorization**: Automatic sorting into binary, file, resident, inline, and other source types
-- **Special Focus**: Binary source detection (qStatement: "binary") for app dependencies
+**Sheet Objects Challenge**: SheetList session objects don't return sheet data. Must use `GetAllInfos` → `GetObject` → `GetLayout` sequence.
 
-**Key Technical Patterns:**
-- **Three-Layer Architecture**: tools.py → qlik_client.py → server.py
-- **Session Object Pattern**: For measures, variables, dimensions, fields
-- **Handle-Based Access**: For sheets and visualization objects
-- **Direct API Calls**: For scripts and lineage data
-- **Intelligent Categorization**: For data sources with filtering options
-- **Comprehensive Error Handling**: Graceful fallbacks and detailed logging
+**Connection Patterns**:
+- App-specific: Connect to `/app/{app_id}` for most operations
+- Global context: Connect to `/app/` for application listing
+- Always disconnect after operations to prevent resource leaks
 
-### Validation and Testing
+**Data Source Categorization**: The `GetLineage` API returns mixed source types. Use intelligent categorization to sort into binary, file, resident, and inline sources based on statement patterns.
 
-All 9 tools have been extensively tested with real Qlik Sense applications:
-- **Test Application**: `fb41d1e1-38fb-4595-8391-2f1a536bceb1`
-- **Measures**: 19 measures with expressions and metadata
-- **Variables**: Multiple variables with definitions and tags
-- **Fields**: Comprehensive field and table information
-- **Sheets**: 3 sheets with titles, dates, publication status
-- **Visualization Objects**: 12+ objects with proper type classification
-- **Dimensions**: 23 dimensions with metadata, grouping, and tags
-- **Scripts**: Complete data loading script (39,439+ characters)
-- **Data Sources**: 13+ sources categorized by type (1 binary, 3 file, 8 resident, 1 inline)
+### Testing Strategy
+
+All 9 tools are validated against real Qlik Sense applications. Each test file in `tests/` corresponds to a specific tool and includes connection validation, parameter testing, and response format verification.
+
+**Key Test Patterns**:
+- Individual tool tests validate specific functionality
+- `test_mcp_tool.py` tests MCP integration directly
+- `test_both_tools.py` validates multiple tools together
+- `test_qlik_connection.py` provides basic connectivity validation
 
 ## Security Notes
 
