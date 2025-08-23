@@ -27,7 +27,7 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 ## Why This Matters
 
 🎯 **Business Impact**: This MCP server bridges the gap between Qlik Sense's powerful analytics and modern AI assistants, enabling:
-- **10x faster insights** - Natural language queries replace complex QlikView expressions
+- **10x faster insights** - Natural language queries replace complex Qlik Sense expressions
 - **Democratized analytics** - Non-technical users can explore Qlik data through conversation
 - **Automated documentation** - AI can instantly analyze and document your entire Qlik application structure
 - **Enterprise-ready integration** - Production-grade WebSocket connections with certificate-based security
