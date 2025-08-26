@@ -91,7 +91,17 @@ python tests/test_qlik_connection.py
 python tests/test_list_apps.py
 ```
 
-### 5. Configure with Claude Desktop
+### 5. Configure with VS Code
+
+```bash
+# Copy example configuration to VS Code settings
+cp examples/vscode_config.json ~/.vscode/settings.json
+
+# Or merge with existing VS Code settings
+# Update the paths in the configuration to match your setup
+```
+
+### 6. Configure with Claude Desktop
 
 ```bash
 # Copy example configuration to Claude Desktop
