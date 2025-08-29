@@ -31,13 +31,13 @@ Lists all available Qlik Sense applications.
     {
       "app_id": "12345678-abcd-1234-efgh-123456789abc",
       "name": "Financial Dashboard",
-      "last_reload_time": "2024-01-20T10:30:00Z",
+      "last_reload_time": "2025-08-29T10:30:00Z",
       "meta": {},
       "doc_type": ""
     }
   ],
   "count": 148,
-  "retrieved_at": "2024-01-20T10:30:00Z"
+  "retrieved_at": "2025-08-29T10:30:00Z"
 }
 ```
 
@@ -67,7 +67,7 @@ Retrieves all measures from a specific Qlik Sense application.
     }
   ],
   "count": 25,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_expression": true,
     "include_tags": true
@@ -102,7 +102,7 @@ Retrieves all variables from a specific Qlik Sense application.
     }
   ],
   "count": 65,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_definition": true,
     "include_tags": true,
@@ -148,7 +148,7 @@ Retrieves all fields and table information from a specific Qlik Sense applicatio
   ],
   "field_count": 88,
   "table_count": 14,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "show_system": true,
     "show_hidden": true,
@@ -184,14 +184,14 @@ Retrieves all sheets from a specific Qlik Sense application.
       "columns": 24,
       "rows": 12,
       "meta": {
-        "created": "2024-01-15T09:00:00Z",
-        "modified": "2024-01-20T10:30:00Z",
+        "created": "2025-08-15T09:00:00Z",
+        "modified": "2025-08-29T10:30:00Z",
         "published": true
       }
     }
   ],
   "count": 3,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_thumbnail": false,
     "include_metadata": true
@@ -236,7 +236,7 @@ Retrieves all visualization objects from a specific sheet.
     }
   ],
   "count": 12,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_properties": true,
     "include_layout": true,
@@ -274,7 +274,7 @@ Retrieves all dimensions from a specific Qlik Sense application.
     }
   ],
   "count": 23,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_title": true,
     "include_tags": true,
@@ -299,7 +299,7 @@ Retrieves the complete data loading script from a specific Qlik Sense applicatio
   "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "script": "// Main data loading script\nLOAD * FROM 'data.qvd' (qvd);\n",
   "script_length": 39439,
-  "retrieved_at": "2024-01-20T10:30:00Z"
+  "retrieved_at": "2025-08-29T10:30:00Z"
 }
 ```
 
@@ -340,7 +340,7 @@ Retrieves data sources and lineage information from a specific Qlik Sense applic
     "other": 0
   },
   "total_sources": 13,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_resident": true,
     "include_file": true,
@@ -358,7 +358,7 @@ All tools return consistent error responses when issues occur:
 {
   "error": "Connection failed",
   "details": "Unable to connect to Qlik server at server.example.com:4747",
-  "timestamp": "2024-01-20T10:30:00Z",
+  "timestamp": "2025-08-29T10:30:00Z",
   "app_id": "12345678-abcd-1234-efgh-123456789abc"
 }
 ```

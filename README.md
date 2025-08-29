@@ -391,7 +391,7 @@ The data sources tool will return:
     }
   ],
   "count": 25,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_expression": true,
     "include_tags": true
@@ -407,13 +407,13 @@ The data sources tool will return:
     {
       "app_id": "12345678-abcd-1234-efgh-123456789abc",
       "name": "CRM Dashboard",
-      "last_reload_time": "2024-01-20T10:30:00Z",
+      "last_reload_time": "2025-08-29T10:30:00Z",
       "meta": {},
       "doc_type": ""
     }
   ],
   "count": 50,
-  "retrieved_at": "2024-01-20T10:30:00Z"
+  "retrieved_at": "2025-08-29T10:30:00Z"
 }
 ```
 
@@ -432,7 +432,7 @@ The data sources tool will return:
     }
   ],
   "count": 25,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_definition": true,
     "include_tags": true,
@@ -464,7 +464,7 @@ The data sources tool will return:
   ],
   "field_count": 60,
   "table_count": 10,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "show_system": true,
     "show_hidden": true,
@@ -490,14 +490,14 @@ The data sources tool will return:
       "columns": 14,
       "rows": 10,
       "meta": {
-        "created": "2024-01-15T09:00:00Z",
-        "modified": "2024-01-20T10:30:00Z",
+        "created": "2025-08-15T09:00:00Z",
+        "modified": "2025-08-29T10:30:00Z",
         "published": true
       }
     }
   ],
   "count": 5,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_thumbnail": false,
     "include_metadata": true
@@ -537,7 +537,7 @@ The data sources tool will return:
     }
   ],
   "count": 12,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_properties": true,
     "include_layout": true,
@@ -561,13 +561,13 @@ The data sources tool will return:
       "field_labels": ["Product Category"],
       "tags": ["product", "hierarchy"],
       "meta": {
-        "created": "2024-01-10T14:30:00Z",
+        "created": "2025-08-10T14:30:00Z",
         "approved": true
       }
     }
   ],
   "count": 30,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_title": true,
     "include_tags": true,
@@ -584,7 +584,7 @@ The data sources tool will return:
   "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "script": "// Main data loading script\n\n// Load sales data\nSales:\nLOAD\n    OrderID,\n    CustomerID,\n    ProductID,\n    Quantity,\n    UnitPrice,\n    OrderDate\nFROM [lib://DataFiles/sales.qvd] (qvd);\n\n// Load customer data\nCustomers:\nLOAD\n    CustomerID,\n    CustomerName,\n    Region,\n    Country\nFROM [lib://DataFiles/customers.xlsx]\n(ooxml, embedded labels, table is Customers);\n",
   "script_length": 245,
-  "retrieved_at": "2024-01-20T10:30:00Z"
+  "retrieved_at": "2025-08-29T10:30:00Z"
 }
 ```
 
@@ -633,7 +633,7 @@ The data sources tool will return:
     "other": 0
   },
   "total_sources": 13,
-  "retrieved_at": "2024-01-20T10:30:00Z",
+  "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_resident": true,
     "include_file": true,
