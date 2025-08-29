@@ -43,7 +43,7 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 - **Python 3.10+** (required for FastMCP)
 - Access to Qlik Sense Enterprise server
 - Valid Qlik client certificates (see [Certificate Setup Guide](docs/CERTIFICATES.md))
-- MCP-compatible client (e.g., Claude Desktop)
+- MCP-compatible client (e.g., Cursor IDE, VS Code, Claude Desktop)
 
 ## Quick Start
 
@@ -91,7 +91,21 @@ python tests/test_qlik_connection.py
 python tests/test_list_apps.py
 ```
 
-### 5. Configure with VS Code
+### 5. Configure with Cursor IDE
+
+```bash
+# For project-specific configuration (recommended)
+mkdir -p .cursor
+cp examples/cursor_config.json .cursor/mcp.json
+
+# OR for global configuration
+cp examples/cursor_config.json ~/.cursor/mcp.json
+
+# Update the paths in the configuration to match your setup
+# Enable MCP in Cursor Settings and restart Cursor
+```
+
+### 6. Configure with VS Code
 
 ```bash
 # Copy example configuration to VS Code settings
@@ -101,7 +115,7 @@ cp examples/vscode_config.json ~/.vscode/settings.json
 # Update the paths in the configuration to match your setup
 ```
 
-### 6. Configure with Claude Desktop
+### 7. Configure with Claude Desktop
 
 ```bash
 # Copy example configuration to Claude Desktop
@@ -143,7 +157,20 @@ The server provides **9 comprehensive tools** for Qlik Sense analysis:
 | `get_app_script` | Retrieve complete data loading scripts |
 | `get_app_data_sources` | Retrieve data sources and lineage information |
 
-### Using with Claude Desktop
+### Using with Different MCP Clients
+
+#### Cursor IDE
+- **Important**: Switch to Agent Mode (not Ask Mode) to access MCP tools
+- Tools are available through natural language commands
+- Cursor will ask for permission before executing tools (configurable in settings)
+- Example: "Use the Qlik tools to list all available applications"
+
+#### VS Code
+- Access tools through the MCP extension
+- Use the command palette or natural language interface
+- Tools execute with appropriate permissions
+
+#### Claude Desktop
 
 Once configured, you can use natural language to access all tools:
 
@@ -638,6 +665,8 @@ qlik-mcp-server/
 │   ├── test_mcp_tool.py           # Test MCP tool functions
 │   └── test_both_tools.py         # Test multiple tools together
 ├── examples/               # Configuration examples
+│   ├── cursor_config.json         # Cursor IDE configuration
+│   ├── vscode_config.json         # VS Code configuration
 │   ├── claude_desktop_config.json # Claude Desktop configuration
 │   └── README.md           # Configuration instructions
 ├── docs/                   # Documentation
