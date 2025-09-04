@@ -9,7 +9,7 @@ description = "MCP server providing comprehensive access to Qlik Sense applicati
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Arthur Fantaci", email = "arthur.fantaci@qlik.com"}
+    {name = "Arthur Fantaci", email = "arthur.fantaci@mac.com"}
 ]
 requires-python = ">=3.10"
 keywords = ["mcp", "qlik", "qlik-sense", "analytics", "api"]
