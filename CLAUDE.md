@@ -22,40 +22,61 @@ The server is named `qlik-sense` to reflect its expanding scope beyond just meas
 
 ### Setup and Installation
 ```bash
+# Using UV (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install UV if needed
+uv sync  # Creates virtual environment and installs dependencies
+
+# Using pip (legacy)
 pip install -r requirements.txt
+
 cp .env.example .env  # Configure with your Qlik server details
 ```
 
 ### Testing
 ```bash
+# With UV (recommended)
+# Test individual tools (most commonly used)
+uv run python tests/test_qlik_connection.py    # Basic connection validation
+uv run python tests/test_list_apps.py          # Application listing
+uv run python tests/test_measures.py           # Measure retrieval
+uv run python tests/test_mcp_tool.py           # MCP tool functions directly
+
+# Test all tools comprehensively
+uv run python tests/test_variables.py          # Variables
+uv run python tests/test_fields.py             # Fields and data model
+uv run python tests/test_sheets.py             # Sheets and visualizations
+uv run python tests/test_dimensions.py         # Dimensions
+uv run python tests/test_script.py             # Data loading scripts
+uv run python tests/test_data_sources.py       # Data source lineage
+
+# Test multiple tools together
+uv run python tests/test_both_tools.py
+
+# With pip (legacy)
 # Test individual tools (most commonly used)
 python tests/test_qlik_connection.py    # Basic connection validation
 python tests/test_list_apps.py          # Application listing
 python tests/test_measures.py           # Measure retrieval
 python tests/test_mcp_tool.py           # MCP tool functions directly
-
-# Test all tools comprehensively
-python tests/test_variables.py          # Variables
-python tests/test_fields.py             # Fields and data model
-python tests/test_sheets.py             # Sheets and visualizations
-python tests/test_dimensions.py         # Dimensions
-python tests/test_script.py             # Data loading scripts
-python tests/test_data_sources.py       # Data source lineage
-
-# Test multiple tools together
-python tests/test_both_tools.py
 ```
 
 ### Running the Server
 ```bash
-# Requires Python 3.10+ for FastMCP
+# With UV (recommended)
+uv run python -m src.server
+# Alternative: uv run python start_server.py
+
+# With specific Python version (legacy)
 /opt/homebrew/bin/python3.11 -m src.server
 # Alternative: /opt/homebrew/bin/python3.11 start_server.py
 ```
 
 ### Debugging
 ```bash
-# Test Qlik client connection directly
+# With UV (recommended)
+uv run python -m src.qlik_client
+
+# With pip (legacy)
 python -m src.qlik_client
 ```
 

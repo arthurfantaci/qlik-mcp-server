@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qlik-mcp-server"
+version = "1.0.0"
+description = "MCP server providing comprehensive access to Qlik Sense applications and their detailed information"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Arthur Fantaci", email = "arthur.fantaci@qlik.com"}
+]
+requires-python = ">=3.10"
+keywords = ["mcp", "qlik", "qlik-sense", "analytics", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "fastmcp>=0.1.0",
+    "websocket-client>=1.6.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/arthurfantaci/qlik-mcp-server"
+Repository = "https://github.com/arthurfantaci/qlik-mcp-server.git"
+Issues = "https://github.com/arthurfantaci/qlik-mcp-server/issues"
+
+[project.scripts]
+qlik-mcp-server = "src.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.uv]
+dev-dependencies = []

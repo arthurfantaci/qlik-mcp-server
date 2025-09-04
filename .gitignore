@@ -37,6 +37,9 @@ ENV/
 env/
 .venv
 
+# UV specific
+uv.lock
+
 # IDE
 .vscode/
 .idea/

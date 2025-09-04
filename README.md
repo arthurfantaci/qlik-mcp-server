@@ -44,6 +44,7 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 - Access to Qlik Sense Enterprise server
 - Valid Qlik client certificates (see [Certificate Setup Guide](docs/CERTIFICATES.md))
 - MCP-compatible client (e.g., Cursor IDE, VS Code, Claude Desktop)
+- **UV** package manager (recommended) or pip
 
 ## Quick Start
 
@@ -54,7 +55,11 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 git clone https://github.com/arthurfantaci/qlik-mcp-server.git
 cd qlik-mcp-server
 
-# Install dependencies (Python 3.10+ required)
+# Option A: Install with UV (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install UV if not already installed
+uv sync  # Creates virtual environment and installs dependencies
+
+# Option B: Install with pip (legacy)
 pip install -r requirements.txt
 ```
 
@@ -84,10 +89,12 @@ certs/
 ### 4. Test Connection
 
 ```bash
-# Test your Qlik Sense connection
-python tests/test_qlik_connection.py
+# With UV (recommended)
+uv run python tests/test_qlik_connection.py
+uv run python tests/test_list_apps.py
 
-# Test application listing
+# With pip
+python tests/test_qlik_connection.py
 python tests/test_list_apps.py
 ```
 
