@@ -10,6 +10,8 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 
 - 🔌 **Direct WebSocket connection** to Qlik Sense Enterprise
 - 🔐 **Certificate-based authentication** with SSL security
+- 📦 **VizlibContainer support** with embedded object extraction
+- 🔗 **Master Item resolution** automatically resolves references to full expressions
 - 📊 **9 comprehensive tools** covering all major Qlik Sense objects:
   - 📋 List all available applications with metadata
   - 📊 Retrieve measures with expressions and tags
@@ -269,7 +271,9 @@ The sheet objects tool will return:
 - Object titles and subtitles
 - Position and sizing information
 - Object properties and layout details
-- Dimension and measure configurations
+- Dimension and measure configurations with Master Item resolution
+- VizlibContainer objects with embedded visualizations
+- Container structure with tabs/panels and nested objects
 - Total count of objects on the sheet
 
 The dimensions tool will return:
@@ -352,7 +356,8 @@ The data sources tool will return:
 | `sheet_id` | string | Yes | Sheet ID to retrieve objects from |
 | `include_properties` | boolean | No | Include object properties (default: true) |
 | `include_layout` | boolean | No | Include object layout information (default: true) |
-| `include_data` | boolean | No | Include data definitions (default: false) |
+| `include_data_definition` | boolean | No | Include measure/dimension definitions (default: true) |
+| `resolve_master_items` | boolean | No | Resolve Master Item references to full expressions (default: true) |
 
 ### `get_app_dimensions` Tool
 
@@ -548,7 +553,8 @@ The data sources tool will return:
   "options": {
     "include_properties": true,
     "include_layout": true,
-    "include_data": false
+    "include_data_definition": true,
+    "resolve_master_items": true
   }
 }
 ```
