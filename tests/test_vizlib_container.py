@@ -15,10 +15,10 @@ from src.tools import get_sheet_objects
 async def test_vizlib_container():
     """Test VizlibContainer object extraction and Master Item resolution"""
     
-    # Use the corrected test case (found the actual sheet containing XwrJW)
-    test_app_id = "fd29a89d-272f-45c6-92d3-f5409cf984a1"
-    test_sheet_id = "4625ce63-ea6a-426c-993f-73737434be5f"  # Productivity - Call Outcomes
-    test_container_id = "XwrJW"
+    # Use a generic test case for VizlibContainer testing
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"  # Replace with your app ID
+    test_sheet_id = "11111111-2222-3333-4444-555555555555"  # Replace with your sheet ID
+    test_container_id = "container1"  # Replace with actual container ID
     
     print("🚀 TESTING VIZLIB CONTAINER FUNCTIONALITY")
     print("=" * 60)
@@ -143,11 +143,11 @@ async def test_vizlib_container():
                                 has_master_items = True
                             print(f"      Master Dimension: {dimension.get('master_item_title')}")
         
-        # Save detailed output for debugging
-        output_file = "test_vizlib_output.json"
-        with open(output_file, "w") as f:
-            json.dump(result, f, indent=2)
-        print(f"\n💾 Full output saved to: {output_file}")
+        # Optionally save output for debugging (commented out by default)
+        # output_file = "test_output.json"
+        # with open(output_file, "w") as f:
+        #     json.dump(result, f, indent=2)
+        # print(f"\n💾 Full output saved to: {output_file}")
         
         # Show response metadata
         print(f"\n📄 Response Metadata:")

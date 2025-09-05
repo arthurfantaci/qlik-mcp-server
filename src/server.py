@@ -13,10 +13,7 @@ from fastmcp import FastMCP
 import pathlib
 project_root = pathlib.Path(__file__).parent.parent
 env_path = project_root / '.env'
-print(f"🔧 Debug: Loading .env from {env_path}", file=sys.stderr)
-print(f"🔧 Debug: .env exists: {env_path.exists()}", file=sys.stderr)
 load_dotenv(env_path)
-print(f"🔧 Debug: After load_dotenv, QLIK_SERVER_URL={os.getenv('QLIK_SERVER_URL')}", file=sys.stderr)
 
 # Import tools
 from .tools import (

@@ -61,6 +61,8 @@ logs/
 htmlcov/
 .tox/
 .hypothesis/
+test_*.json
+*_output.json
 
 # MCP specific
 .mcp/

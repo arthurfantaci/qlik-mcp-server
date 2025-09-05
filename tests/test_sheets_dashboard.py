@@ -14,8 +14,8 @@ from src.tools import get_app_sheets
 async def test_dashboard_sheets():
     """Test sheets with a dashboard app"""
     
-    # Try with the main dashboard app
-    test_app_id = "e8b58c47-080a-4b0f-ab8b-df760bbdf7bc"  # abc-demo-issuer-main-dashboard
+    # Use a generic test app ID (replace with your actual dashboard app ID)
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"  # Replace with your app ID
     
     print(f"Testing sheets for dashboard app: {test_app_id}")
     
