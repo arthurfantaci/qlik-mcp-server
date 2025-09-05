@@ -97,6 +97,10 @@ class GetSheetObjectsArgs(BaseModel):
         default=True,
         description="Include measures/dimensions"
     )
+    resolve_master_items: bool = Field(
+        default=True,
+        description="Resolve Master Item references to their full expressions"
+    )
 
 
 class GetAppDimensionsArgs(BaseModel):
@@ -463,7 +467,8 @@ async def get_sheet_objects(
     sheet_id: str,
     include_properties: bool = True,
     include_layout: bool = True,
-    include_data_definition: bool = True
+    include_data_definition: bool = True,
+    resolve_master_items: bool = True
 ) -> Dict[str, Any]:
     """
     Retrieve all visualization objects from a specific sheet.
@@ -474,6 +479,7 @@ async def get_sheet_objects(
         include_properties: Whether to include object properties
         include_layout: Whether to include position/size info
         include_data_definition: Whether to include measures/dimensions
+        resolve_master_items: Whether to resolve Master Item references
     
     Returns:
         JSON object containing visualization object details
@@ -497,7 +503,8 @@ async def get_sheet_objects(
             sheet_id=sheet_id,
             include_properties=include_properties,
             include_layout=include_layout,
-            include_data_definition=include_data_definition
+            include_data_definition=include_data_definition,
+            resolve_master_items=resolve_master_items
         )
         
         # Add metadata to response
@@ -511,7 +518,8 @@ async def get_sheet_objects(
             "options": {
                 "include_properties": include_properties,
                 "include_layout": include_layout,
-                "include_data_definition": include_data_definition
+                "include_data_definition": include_data_definition,
+                "resolve_master_items": resolve_master_items
             }
         }
         
@@ -819,7 +827,7 @@ TOOL_DEFINITIONS = {
         }
     },
     "get_sheet_objects": {
-        "description": "Retrieve all visualization objects from a specific sheet",
+        "description": "Retrieve all visualization objects from a specific sheet, including embedded objects in containers",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -844,6 +852,11 @@ TOOL_DEFINITIONS = {
                 "include_data_definition": {
                     "type": "boolean",
                     "description": "Include measures/dimensions",
+                    "default": True
+                },
+                "resolve_master_items": {
+                    "type": "boolean",
+                    "description": "Resolve Master Item references to their full expressions",
                     "default": True
                 }
             },

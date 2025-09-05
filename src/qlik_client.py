@@ -578,9 +578,10 @@ class QlikClient:
         sheet_id: str,
         include_properties: bool = True,
         include_layout: bool = True,
-        include_data_definition: bool = True
+        include_data_definition: bool = True,
+        resolve_master_items: bool = True
     ) -> Dict[str, Any]:
-        """Retrieve all visualization objects from a specific sheet"""
+        """Retrieve all visualization objects from a specific sheet, including container contents"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
         
@@ -592,6 +593,8 @@ class QlikClient:
                 self.app_handle,
                 [sheet_id]
             )
+            
+            # print(f"GetObject result: {sheet_result}")  # Debug output
             
             if not sheet_result or "qReturn" not in sheet_result:
                 raise ValueError(f"Failed to get sheet object: {sheet_id}")
@@ -616,6 +619,14 @@ class QlikClient:
             
             print(f"Found {len(child_infos)} child objects")
             
+            # Pre-fetch master items if needed for resolution
+            master_measures_cache = {}
+            master_dimensions_cache = {}
+            if resolve_master_items:
+                print("Pre-fetching master items for resolution...")
+                master_measures_cache = self.get_master_measures_map()
+                master_dimensions_cache = self.get_master_dimensions_map()
+            
             # Process each visualization object
             objects = []
             for child_info in child_infos:
@@ -627,38 +638,68 @@ class QlikClient:
                     "object_type": obj_type
                 }
                 
-                # Get detailed object information if it's not a container
-                if obj_type not in ["container", "filterpane"]:
-                    try:
-                        # Get the object
-                        obj_result = self._send_request(
-                            "GetObject",
-                            self.app_handle,
-                            [obj_id]
-                        )
+                # Process ALL objects including containers
+                try:
+                    # Get the object
+                    obj_result = self._send_request(
+                        "GetObject",
+                        self.app_handle,
+                        [obj_id]
+                    )
+                    
+                    if obj_result and "qReturn" in obj_result:
+                        obj_handle = obj_result["qReturn"]["qHandle"]
                         
-                        if obj_result and "qReturn" in obj_result:
-                            obj_handle = obj_result["qReturn"]["qHandle"]
+                        # Get object layout for detailed info
+                        obj_layout = self._send_request("GetLayout", obj_handle)
+                        obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
+                        
+                        # Extract title and subtitle
+                        if "title" in obj_layout_data:
+                            obj_data["title"] = obj_layout_data["title"]
+                        if "subtitle" in obj_layout_data:
+                            obj_data["subtitle"] = obj_layout_data["subtitle"]
+                        
+                        # Extract layout information
+                        if include_layout and "qInfo" in obj_layout_data:
+                            obj_data["layout"] = {
+                                "x": child_info.get("qData", {}).get("col", 0),
+                                "y": child_info.get("qData", {}).get("row", 0),
+                                "width": child_info.get("qData", {}).get("colspan", 0),
+                                "height": child_info.get("qData", {}).get("rowspan", 0)
+                            }
+                        
+                        # Check if this is a VizlibContainer or similar container
+                        if obj_type.lower() in ["vizlibcontainer", "container", "qlik-tabbed-container"]:
+                            print(f"Processing container object: {obj_id} (type: {obj_type})")
+                            obj_data["is_container"] = True
                             
-                            # Get object layout for detailed info
-                            obj_layout = self._send_request("GetLayout", obj_handle)
-                            obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
+                            # Get effective properties for the container
+                            effective_props = self.get_effective_properties(obj_handle)
                             
-                            # Extract title and subtitle
-                            if "title" in obj_layout_data:
-                                obj_data["title"] = obj_layout_data["title"]
-                            if "subtitle" in obj_layout_data:
-                                obj_data["subtitle"] = obj_layout_data["subtitle"]
+                            # Process container contents
+                            container_objects = self._process_container_contents(
+                                obj_handle,
+                                obj_id,
+                                effective_props,
+                                include_properties,
+                                include_layout,
+                                include_data_definition,
+                                resolve_master_items,
+                                master_measures_cache,
+                                master_dimensions_cache
+                            )
                             
-                            # Extract layout information
-                            if include_layout and "qInfo" in obj_layout_data:
-                                obj_data["layout"] = {
-                                    "x": child_info.get("qData", {}).get("col", 0),
-                                    "y": child_info.get("qData", {}).get("row", 0),
-                                    "width": child_info.get("qData", {}).get("colspan", 0),
-                                    "height": child_info.get("qData", {}).get("rowspan", 0)
-                                }
+                            if container_objects:
+                                obj_data["embedded_objects"] = container_objects
+                                obj_data["embedded_object_count"] = len(container_objects)
                             
+                            # Store container structure if available
+                            if effective_props:
+                                obj_data["container_structure"] = self._extract_container_structure(effective_props)
+                        
+                        # Process regular visualization objects
+                        else:
                             # Extract measures and dimensions
                             if include_data_definition:
                                 measures = []
@@ -671,51 +712,50 @@ class QlikClient:
                                     # Extract measures
                                     if "qMeasures" in hc_def:
                                         for measure in hc_def["qMeasures"]:
-                                            measure_def = measure.get("qDef", {})
-                                            measures.append({
-                                                "label": measure_def.get("qLabel", ""),
-                                                "expression": measure_def.get("qDef", "")
-                                            })
+                                            measure_data = self._process_measure(
+                                                measure,
+                                                resolve_master_items,
+                                                master_measures_cache
+                                            )
+                                            measures.append(measure_data)
                                     
                                     # Extract dimensions
                                     if "qDimensions" in hc_def:
                                         for dimension in hc_def["qDimensions"]:
-                                            dim_def = dimension.get("qDef", {})
-                                            dimensions.append({
-                                                "label": dim_def.get("qLabel", ""),
-                                                "field": dim_def.get("qFieldDefs", [""])[0] if dim_def.get("qFieldDefs") else ""
-                                            })
+                                            dimension_data = self._process_dimension(
+                                                dimension,
+                                                resolve_master_items,
+                                                master_dimensions_cache
+                                            )
+                                            dimensions.append(dimension_data)
                                 
                                 if measures:
                                     obj_data["measures"] = measures
                                 if dimensions:
                                     obj_data["dimensions"] = dimensions
+                        
+                        # Extract properties if requested
+                        if include_properties:
+                            properties = {}
                             
-                            # Extract properties if requested
-                            if include_properties:
-                                properties = {}
-                                
-                                # Extract color settings
-                                if "color" in obj_layout_data:
-                                    properties["color"] = obj_layout_data["color"]
-                                
-                                # Extract other visualization-specific properties
-                                if "qHyperCubeDef" in obj_layout_data:
-                                    hc_def = obj_layout_data["qHyperCubeDef"]
-                                    if "qInterColumnSortOrder" in hc_def:
-                                        properties["sortOrder"] = hc_def["qInterColumnSortOrder"]
-                                
-                                if properties:
-                                    obj_data["properties"] = properties
-                    
-                    except Exception as e:
-                        print(f"Warning: Could not get details for object {obj_id}: {e}")
-                        # Continue with basic info
+                            # Extract color settings
+                            if "color" in obj_layout_data:
+                                properties["color"] = obj_layout_data["color"]
+                            
+                            # Extract other visualization-specific properties
+                            if "qHyperCubeDef" in obj_layout_data:
+                                hc_def = obj_layout_data["qHyperCubeDef"]
+                                if "qInterColumnSortOrder" in hc_def:
+                                    properties["sortOrder"] = hc_def["qInterColumnSortOrder"]
+                            
+                            if properties:
+                                obj_data["properties"] = properties
+                
+                except Exception as e:
+                    print(f"Warning: Could not get details for object {obj_id}: {e}")
+                    # Continue with basic info
                 
                 objects.append(obj_data)
-            
-            # Clean up session object (skip for now to avoid errors)
-            # Note: In production, should properly destroy session objects
             
             return {
                 "sheet_title": sheet_title,
@@ -726,6 +766,601 @@ class QlikClient:
         except Exception as e:
             print(f"Error retrieving sheet objects: {e}")
             raise
+    
+    def _process_container_contents(
+        self,
+        container_handle: int,
+        container_id: str,
+        effective_props: Dict[str, Any],
+        include_properties: bool,
+        include_layout: bool,
+        include_data_definition: bool,
+        resolve_master_items: bool,
+        master_measures_cache: Dict[str, Dict[str, Any]],
+        master_dimensions_cache: Dict[str, Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Process and extract embedded objects from a container"""
+        embedded_objects = []
+        
+        try:
+            # Debug: Print what we got from GetEffectiveProperties (commented out for production)
+            # print(f"DEBUG: Effective properties for {container_id}: {json.dumps(effective_props, indent=2) if effective_props else 'None'}")
+            
+            # Try to extract tabs/panels structure from effective properties
+            tabs = []
+            vizlib_container_objects = []
+            
+            if effective_props:
+                # Check for VizlibContainer specific structure
+                if "qProp" in effective_props:
+                    qprop = effective_props.get("qProp", {})
+                    if "containerObjects" in qprop:
+                        vizlib_container_objects = qprop.get("containerObjects", [])
+                
+                # Look for common container structures
+                if not vizlib_container_objects:
+                    if "tabs" in effective_props:
+                        tabs = effective_props.get("tabs", [])
+                    elif "panels" in effective_props:
+                        tabs = effective_props.get("panels", [])
+                    elif "qProperty" in effective_props:
+                        prop = effective_props.get("qProperty", {})
+                        if "tabs" in prop:
+                            tabs = prop.get("tabs", [])
+                        elif "panels" in prop:
+                            tabs = prop.get("panels", [])
+                    elif "props" in effective_props:
+                        props = effective_props.get("props", {})
+                        if "tabs" in props:
+                            tabs = props.get("tabs", [])
+            
+            # Process VizlibContainer objects if found
+            if vizlib_container_objects:
+                print(f"Found {len(vizlib_container_objects)} VizlibContainer tabs in container {container_id}")
+                for tab_idx, container_obj in enumerate(vizlib_container_objects):
+                    tab_label = container_obj.get("label", f"Tab_{tab_idx + 1}")
+                    tab_id = container_obj.get("cId", f"{container_id}_tab_{tab_idx + 1}")
+                    
+                    print(f"Processing VizlibContainer tab: {tab_label}")
+                    
+                    # Extract master items from gridView
+                    grid_view = container_obj.get("gridView", {})
+                    master_items = grid_view.get("masterItems", [])
+                    
+                    for master_item in master_items:
+                        master_item_id = master_item.get("masterItemId")
+                        if master_item_id:
+                            print(f"  Found master item: {master_item_id}")
+                            # Try to get the master item object
+                            try:
+                                obj_result = self._send_request(
+                                    "GetObject",
+                                    self.app_handle,
+                                    [master_item_id]
+                                )
+                                if obj_result and "qReturn" in obj_result:
+                                    obj_handle = obj_result["qReturn"]["qHandle"]
+                                    if obj_handle:
+                                        obj_layout = self._send_request("GetLayout", obj_handle)
+                                        
+                                        embedded_obj = self._create_object_from_layout(
+                                            master_item_id,
+                                            obj_layout,
+                                            container_id,
+                                            tab_label,
+                                            include_properties,
+                                            include_layout,
+                                            include_data_definition,
+                                            resolve_master_items,
+                                            master_measures_cache,
+                                            master_dimensions_cache
+                                        )
+                                        if embedded_obj:
+                                            embedded_obj["container_tab"] = tab_label
+                                            embedded_obj["container_tab_id"] = tab_id
+                                            embedded_obj["cell_label"] = master_item.get("label", "")
+                                            embedded_objects.append(embedded_obj)
+                            except Exception as e:
+                                print(f"Could not get master item {master_item_id}: {e}")
+            else:
+                print(f"Found {len(tabs)} tabs/panels in container {container_id}")
+            
+            # Process each tab/panel
+            for tab_idx, tab in enumerate(tabs):
+                tab_objects = []
+                
+                # Extract tab metadata
+                tab_label = tab.get("label", f"Tab_{tab_idx + 1}")
+                tab_id = tab.get("id", f"{container_id}_tab_{tab_idx + 1}")
+                
+                # Look for embedded objects in the tab
+                if "objects" in tab:
+                    for obj in tab.get("objects", []):
+                        embedded_obj = self._process_embedded_object(
+                            obj,
+                            container_id,
+                            tab_label,
+                            include_properties,
+                            include_layout,
+                            include_data_definition,
+                            resolve_master_items,
+                            master_measures_cache,
+                            master_dimensions_cache
+                        )
+                        if embedded_obj:
+                            tab_objects.append(embedded_obj)
+                
+                # Also check for object references
+                elif "objectId" in tab or "qObjectId" in tab:
+                    obj_id = tab.get("objectId") or tab.get("qObjectId")
+                    if obj_id:
+                        # Try to get the referenced object
+                        try:
+                            obj_result = self._send_request(
+                                "GetObject",
+                                self.app_handle,
+                                [obj_id]
+                            )
+                            if obj_result and "qReturn" in obj_result:
+                                obj_handle = obj_result["qReturn"]["qHandle"]
+                                obj_layout = self._send_request("GetLayout", obj_handle)
+                                
+                                embedded_obj = self._create_object_from_layout(
+                                    obj_id,
+                                    obj_layout,
+                                    container_id,
+                                    tab_label,
+                                    include_properties,
+                                    include_layout,
+                                    include_data_definition,
+                                    resolve_master_items,
+                                    master_measures_cache,
+                                    master_dimensions_cache
+                                )
+                                if embedded_obj:
+                                    tab_objects.append(embedded_obj)
+                        except Exception as e:
+                            print(f"Could not get embedded object {obj_id}: {e}")
+                
+                # Add tab objects to main list
+                for obj in tab_objects:
+                    obj["container_tab"] = tab_label
+                    obj["container_tab_id"] = tab_id
+                    embedded_objects.append(obj)
+            
+            # If no tabs structure found, try to get child objects directly
+            if not tabs and container_handle:
+                try:
+                    # Try GetChildInfos to see if there are child objects
+                    child_info_result = self._send_request("GetChildInfos", container_handle)
+                    if child_info_result:
+                        for child in child_info_result:
+                            child_id = child.get("qId", "")
+                            if child_id:
+                                try:
+                                    obj_result = self._send_request(
+                                        "GetObject",
+                                        self.app_handle,
+                                        [child_id]
+                                    )
+                                    if obj_result and "qReturn" in obj_result:
+                                        obj_handle = obj_result["qReturn"]["qHandle"]
+                                        obj_layout = self._send_request("GetLayout", obj_handle)
+                                        
+                                        embedded_obj = self._create_object_from_layout(
+                                            child_id,
+                                            obj_layout,
+                                            container_id,
+                                            "Main",
+                                            include_properties,
+                                            include_layout,
+                                            include_data_definition,
+                                            resolve_master_items,
+                                            master_measures_cache,
+                                            master_dimensions_cache
+                                        )
+                                        if embedded_obj:
+                                            embedded_obj["container_tab"] = "Main"
+                                            embedded_objects.append(embedded_obj)
+                                except Exception as e:
+                                    print(f"Could not process child object {child_id}: {e}")
+                except:
+                    pass  # GetChildInfos might not be available
+            
+            print(f"Extracted {len(embedded_objects)} embedded objects from container {container_id}")
+            
+        except Exception as e:
+            print(f"Error processing container contents: {e}")
+        
+        return embedded_objects
+    
+    def _process_embedded_object(
+        self,
+        obj_data: Dict[str, Any],
+        container_id: str,
+        tab_label: str,
+        include_properties: bool,
+        include_layout: bool,
+        include_data_definition: bool,
+        resolve_master_items: bool,
+        master_measures_cache: Dict[str, Dict[str, Any]],
+        master_dimensions_cache: Dict[str, Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """Process an embedded object definition from container"""
+        try:
+            obj_id = obj_data.get("id") or obj_data.get("qId", "")
+            obj_type = obj_data.get("type") or obj_data.get("qType", "")
+            
+            if not obj_id:
+                return None
+            
+            embedded_obj = {
+                "object_id": obj_id,
+                "object_type": obj_type,
+                "parent_container": container_id,
+                "is_embedded": True
+            }
+            
+            # Try to get more details about the object
+            try:
+                obj_result = self._send_request(
+                    "GetObject",
+                    self.app_handle,
+                    [obj_id]
+                )
+                if obj_result and "qReturn" in obj_result:
+                    obj_handle = obj_result["qReturn"]["qHandle"]
+                    obj_layout = self._send_request("GetLayout", obj_handle)
+                    
+                    return self._create_object_from_layout(
+                        obj_id,
+                        obj_layout,
+                        container_id,
+                        tab_label,
+                        include_properties,
+                        include_layout,
+                        include_data_definition,
+                        resolve_master_items,
+                        master_measures_cache,
+                        master_dimensions_cache
+                    )
+            except:
+                pass  # Continue with basic info if detailed fetch fails
+            
+            return embedded_obj
+            
+        except Exception as e:
+            print(f"Error processing embedded object: {e}")
+            return None
+    
+    def _create_object_from_layout(
+        self,
+        obj_id: str,
+        obj_layout: Dict[str, Any],
+        container_id: str,
+        tab_label: str,
+        include_properties: bool,
+        include_layout: bool,
+        include_data_definition: bool,
+        resolve_master_items: bool,
+        master_measures_cache: Dict[str, Dict[str, Any]],
+        master_dimensions_cache: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Create object data from layout information"""
+        obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
+        
+        obj = {
+            "object_id": obj_id,
+            "object_type": obj_layout_data.get("qInfo", {}).get("qType", ""),
+            "parent_container": container_id,
+            "is_embedded": True
+        }
+        
+        # Extract title and subtitle
+        if "title" in obj_layout_data:
+            obj["title"] = obj_layout_data["title"]
+        if "subtitle" in obj_layout_data:
+            obj["subtitle"] = obj_layout_data["subtitle"]
+        
+        # Extract measures and dimensions if requested
+        if include_data_definition:
+            measures = []
+            dimensions = []
+            
+            if "qHyperCubeDef" in obj_layout_data:
+                hc_def = obj_layout_data["qHyperCubeDef"]
+                
+                # Extract measures
+                if "qMeasures" in hc_def:
+                    for measure in hc_def["qMeasures"]:
+                        measure_data = self._process_measure(
+                            measure,
+                            resolve_master_items,
+                            master_measures_cache
+                        )
+                        measures.append(measure_data)
+                
+                # Extract dimensions
+                if "qDimensions" in hc_def:
+                    for dimension in hc_def["qDimensions"]:
+                        dimension_data = self._process_dimension(
+                            dimension,
+                            resolve_master_items,
+                            master_dimensions_cache
+                        )
+                        dimensions.append(dimension_data)
+            
+            if measures:
+                obj["measures"] = measures
+            if dimensions:
+                obj["dimensions"] = dimensions
+        
+        # Extract properties if requested
+        if include_properties:
+            properties = {}
+            if "color" in obj_layout_data:
+                properties["color"] = obj_layout_data["color"]
+            if properties:
+                obj["properties"] = properties
+        
+        return obj
+    
+    def _extract_container_structure(self, effective_props: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract and simplify container structure from effective properties"""
+        structure = {
+            "type": "container",
+            "tabs": []
+        }
+        
+        try:
+            tabs = []
+            
+            # Check for VizlibContainer specific structure
+            if "qProp" in effective_props:
+                qprop = effective_props.get("qProp", {})
+                if "containerObjects" in qprop:
+                    container_objects = qprop.get("containerObjects", [])
+                    for container_obj in container_objects:
+                        grid_view = container_obj.get("gridView", {})
+                        master_items = grid_view.get("masterItems", [])
+                        tab_info = {
+                            "label": container_obj.get("label", ""),
+                            "id": container_obj.get("cId", ""),
+                            "object_count": len(master_items),
+                            "master_items": [item.get("masterItemId") for item in master_items if item.get("masterItemId")]
+                        }
+                        structure["tabs"].append(tab_info)
+            
+            # If no VizlibContainer structure, look for standard tabs/panels
+            if not structure["tabs"]:
+                if "tabs" in effective_props:
+                    tabs = effective_props.get("tabs", [])
+                elif "panels" in effective_props:
+                    tabs = effective_props.get("panels", [])
+                elif "qProperty" in effective_props:
+                    prop = effective_props.get("qProperty", {})
+                    if "tabs" in prop:
+                        tabs = prop.get("tabs", [])
+                    elif "panels" in prop:
+                        tabs = prop.get("panels", [])
+                
+                for tab in tabs:
+                    tab_info = {
+                        "label": tab.get("label", ""),
+                        "id": tab.get("id", ""),
+                        "object_count": len(tab.get("objects", []))
+                    }
+                    structure["tabs"].append(tab_info)
+            
+            structure["tab_count"] = len(structure["tabs"])
+            
+        except Exception as e:
+            print(f"Error extracting container structure: {e}")
+        
+        return structure
+    
+    def _process_measure(
+        self,
+        measure: Dict[str, Any],
+        resolve_master_items: bool,
+        master_measures_cache: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Process a measure definition, resolving master items if needed"""
+        measure_def = measure.get("qDef", {})
+        library_id = measure.get("qLibraryId", "")
+        
+        measure_data = {
+            "label": measure_def.get("qLabel", ""),
+            "expression": measure_def.get("qDef", "")
+        }
+        
+        # Check if this is a master measure reference
+        if library_id and resolve_master_items:
+            resolution = self.resolve_master_item_reference(
+                library_id,
+                "measure",
+                master_measures_cache
+            )
+            if resolution.get("resolved"):
+                master_item = resolution.get("master_item", {})
+                measure_data["library_id"] = library_id
+                measure_data["is_master_item"] = True
+                measure_data["resolved_expression"] = master_item.get("expression", "")
+                measure_data["master_item_title"] = master_item.get("title", "")
+                if not measure_data["label"]:
+                    measure_data["label"] = master_item.get("label", "") or master_item.get("title", "")
+                if not measure_data["expression"]:
+                    measure_data["expression"] = master_item.get("expression", "")
+        
+        return measure_data
+    
+    def _process_dimension(
+        self,
+        dimension: Dict[str, Any],
+        resolve_master_items: bool,
+        master_dimensions_cache: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Process a dimension definition, resolving master items if needed"""
+        dim_def = dimension.get("qDef", {})
+        library_id = dimension.get("qLibraryId", "")
+        
+        dimension_data = {
+            "label": dim_def.get("qLabel", ""),
+            "field": dim_def.get("qFieldDefs", [""])[0] if dim_def.get("qFieldDefs") else ""
+        }
+        
+        # Check if this is a master dimension reference
+        if library_id and resolve_master_items:
+            resolution = self.resolve_master_item_reference(
+                library_id,
+                "dimension",
+                master_dimensions_cache
+            )
+            if resolution.get("resolved"):
+                master_item = resolution.get("master_item", {})
+                dimension_data["library_id"] = library_id
+                dimension_data["is_master_item"] = True
+                dimension_data["resolved_field_definitions"] = master_item.get("field_definitions", [])
+                dimension_data["master_item_title"] = master_item.get("title", "")
+                if not dimension_data["label"]:
+                    labels = master_item.get("labels", [])
+                    if labels:
+                        dimension_data["label"] = labels[0]
+                if not dimension_data["field"] and master_item.get("field_definitions"):
+                    dimension_data["field"] = master_item["field_definitions"][0]
+        
+        return dimension_data
+    
+    def get_effective_properties(self, object_handle: int) -> Dict[str, Any]:
+        """Get effective properties of an object (especially useful for containers)"""
+        if not self.ws:
+            raise ConnectionError("Not connected to Qlik Engine")
+        
+        try:
+            result = self._send_request("GetEffectiveProperties", object_handle)
+            return result if result else {}
+        except Exception as e:
+            print(f"Error getting effective properties: {e}")
+            return {}
+    
+    def get_master_measures_map(self) -> Dict[str, Dict[str, Any]]:
+        """Get all master measures and return as a map keyed by ID"""
+        if not self.ws or not self.app_handle:
+            raise ConnectionError("Not connected to Qlik Engine")
+        
+        try:
+            print("Fetching master measures for reference resolution...")
+            measures_result = self.get_measures(include_expression=True, include_tags=False)
+            measures_map = {}
+            
+            for measure in measures_result.get("measures", []):
+                measure_id = measure.get("id")
+                if measure_id:
+                    measures_map[measure_id] = {
+                        "expression": measure.get("expression", ""),
+                        "label": measure.get("label", ""),
+                        "title": measure.get("title", ""),
+                        "description": measure.get("description", "")
+                    }
+            
+            print(f"Cached {len(measures_map)} master measures")
+            return measures_map
+            
+        except Exception as e:
+            print(f"Error fetching master measures map: {e}")
+            return {}
+    
+    def get_master_dimensions_map(self) -> Dict[str, Dict[str, Any]]:
+        """Get all master dimensions and return as a map keyed by ID"""
+        if not self.ws or not self.app_handle:
+            raise ConnectionError("Not connected to Qlik Engine")
+        
+        try:
+            print("Fetching master dimensions for reference resolution...")
+            dimensions_result = self.get_dimensions(
+                include_title=True,
+                include_tags=False,
+                include_grouping=True,
+                include_info=True
+            )
+            dimensions_map = {}
+            
+            for dimension in dimensions_result.get("dimensions", []):
+                dimension_id = dimension.get("id")
+                if dimension_id:
+                    # Extract field definitions and labels
+                    dim_info = dimension.get("info", [])
+                    field_defs = []
+                    labels = []
+                    
+                    for info_item in dim_info:
+                        if isinstance(info_item, dict):
+                            field_def = info_item.get("qFieldDefs", [])
+                            if field_def:
+                                field_defs.extend(field_def)
+                            label = info_item.get("qLabel", "")
+                            if label:
+                                labels.append(label)
+                    
+                    dimensions_map[dimension_id] = {
+                        "field_definitions": field_defs,
+                        "labels": labels,
+                        "title": dimension.get("title", ""),
+                        "grouping": dimension.get("grouping", "")
+                    }
+            
+            print(f"Cached {len(dimensions_map)} master dimensions")
+            return dimensions_map
+            
+        except Exception as e:
+            print(f"Error fetching master dimensions map: {e}")
+            return {}
+    
+    def resolve_master_item_reference(
+        self, 
+        library_id: str,
+        item_type: str,
+        master_items_cache: Dict[str, Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Resolve a master item reference to its full definition
+        
+        Args:
+            library_id: The qLibraryId reference
+            item_type: Either 'measure' or 'dimension'
+            master_items_cache: Optional pre-fetched cache of master items
+        
+        Returns:
+            Dictionary with resolved expression/field definitions
+        """
+        if not library_id:
+            return {}
+        
+        try:
+            if item_type == "measure":
+                if master_items_cache is None:
+                    master_items_cache = self.get_master_measures_map()
+                
+                if library_id in master_items_cache:
+                    return {
+                        "resolved": True,
+                        "master_item": master_items_cache[library_id]
+                    }
+                    
+            elif item_type == "dimension":
+                if master_items_cache is None:
+                    master_items_cache = self.get_master_dimensions_map()
+                
+                if library_id in master_items_cache:
+                    return {
+                        "resolved": True,
+                        "master_item": master_items_cache[library_id]
+                    }
+            
+            return {"resolved": False, "reason": "Master item not found"}
+            
+        except Exception as e:
+            print(f"Error resolving master item {library_id}: {e}")
+            return {"resolved": False, "reason": str(e)}
     
     def get_dimensions(
         self,
@@ -971,9 +1606,22 @@ class QlikClient:
         
         self.request_id += 1
         
+        # Debug output for GetObject calls
+        # if method == "GetObject":
+        #     print(f"DEBUG: GetObject called with handle={handle}, params={params}")
+        
         # Handle params based on method type
         if method == "CreateSessionObject" and isinstance(params, list):
             # CreateSessionObject expects array params
+            request = {
+                "jsonrpc": "2.0",
+                "id": self.request_id,
+                "method": method,
+                "handle": handle,
+                "params": params
+            }
+        elif method == "GetObject" and isinstance(params, list):
+            # GetObject expects array params directly
             request = {
                 "jsonrpc": "2.0",
                 "id": self.request_id,
@@ -1000,7 +1648,10 @@ class QlikClient:
             }
         
         # Send request
-        self.ws.send(json.dumps(request))
+        request_json = json.dumps(request)
+        # if method == "GetObject":
+        #     print(f"DEBUG: Sending request: {request_json}")
+        self.ws.send(request_json)
         
         # Set receive timeout
         if hasattr(self.ws, 'sock') and self.ws.sock:
