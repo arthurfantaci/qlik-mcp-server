@@ -13,7 +13,7 @@ This is a Model Context Protocol (MCP) server that provides comprehensive access
 5. `get_app_sheets` - Retrieves all sheets from a specific Qlik Sense application with metadata
 6. `get_sheet_objects` - Retrieves all visualization objects from a specific sheet with detailed properties
 7. `get_app_dimensions` - Retrieves all dimensions from a specific Qlik Sense application with metadata
-8. `get_app_script` - Retrieves the complete data loading script from a specific Qlik Sense application
+8. `get_app_script` - **Enhanced:** Retrieves and analyzes data loading scripts with BINARY LOAD extraction, section parsing, and comprehensive analysis
 9. `get_app_data_sources` - Retrieves data sources from the application's lineage (LOAD/STORE statements)
 
 The server is named `qlik-sense` to reflect its expanding scope beyond just measures.
@@ -94,6 +94,8 @@ python -m src.qlik_client
 - **WebSocket communication** - Direct connection to Qlik Engine API via WebSocket
 - **Session object pattern** - Creates MeasureList session objects to retrieve measures
 - **Environment-based configuration** - All connection details configured via `.env` file
+- **Enhanced Script Analysis** - Comprehensive parsing with regex patterns for BINARY LOAD extraction
+- **Pydantic Models** - Type-safe request/response handling with validation
 
 ### Connection Flow
 
@@ -113,12 +115,20 @@ python -m src.qlik_client
 - All tools except `list_qlik_applications` require `app_id`
 - Most tools have optional boolean flags to control response detail level
 - `get_sheet_objects` uniquely requires both `app_id` and `sheet_id`
+- `get_app_script` enhanced with: `analyze_script`, `include_sections`, `include_line_numbers`, `max_preview_length`
 
 **API Access Patterns**:
 - **Session Objects**: Measures, variables, dimensions, fields use `CreateSessionObject` + `GetLayout`
 - **Handle-Based**: Sheets and sheet objects use `GetObject` by handle + `GetLayout`
 - **Direct API**: Scripts use `GetScript`, data sources use `GetLineage`
 - **Global Context**: Application listing uses global connection + `GetDocList`
+
+**Script Analysis Patterns** (NEW):
+- **BINARY LOAD Extraction**: Regex-based parsing to identify all BINARY LOAD statements with source applications
+- **Section Parsing**: Identifies ///$tab markers to organize script into logical sections
+- **Statement Analysis**: Comprehensive counting of LOAD, STORE, DROP, and BINARY LOAD statements
+- **Variable Extraction**: Captures SET and LET declarations with values and line numbers
+- **Security Sanitization**: Automatic masking of passwords and sensitive credentials
 
 **Error Handling**: All tools return structured JSON with comprehensive error handling and graceful fallbacks.
 
@@ -170,6 +180,8 @@ All 9 tools are validated against real Qlik Sense applications. Each test file i
 - `test_mcp_tool.py` tests MCP integration directly
 - `test_both_tools.py` validates multiple tools together
 - `test_qlik_connection.py` provides basic connectivity validation
+- `test_script.py` comprehensively tests all script analysis features
+- `test_binary_extraction.py` validates BINARY LOAD statement extraction
 
 ## Security Notes
 

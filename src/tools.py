@@ -1,8 +1,9 @@
 """MCP tool definitions for Qlik measure retrieval"""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pydantic import BaseModel, Field
+import re
 
 
 class GetAppMeasuresArgs(BaseModel):
@@ -124,9 +125,58 @@ class GetAppDimensionsArgs(BaseModel):
     )
 
 
+class ScriptSection(BaseModel):
+    """Represents a section/tab in the Qlik script"""
+    name: str = Field(description="Section/tab name")
+    start_line: int = Field(description="Starting line number")
+    end_line: int = Field(description="Ending line number")
+    content: str = Field(description="Section content")
+    line_count: int = Field(description="Number of lines in section")
+
+
+class BinaryLoadStatement(BaseModel):
+    """Represents a BINARY LOAD statement in the script"""
+    line_number: int = Field(description="Line number where statement appears")
+    source_app: str = Field(description="Source application path or name")
+    full_statement: str = Field(description="Complete BINARY LOAD statement")
+
+
+class ScriptAnalysis(BaseModel):
+    """Analysis and statistics of the script"""
+    total_lines: int = Field(description="Total number of lines")
+    empty_lines: int = Field(description="Number of empty lines")
+    comment_lines: int = Field(description="Number of comment lines")
+    sections: List[ScriptSection] = Field(default_factory=list, description="Script sections/tabs")
+    load_statements: int = Field(description="Count of LOAD statements")
+    store_statements: int = Field(description="Count of STORE statements")
+    drop_statements: int = Field(description="Count of DROP statements")
+    binary_load_statements: List[BinaryLoadStatement] = Field(default_factory=list, description="BINARY LOAD statements found")
+    set_variables: List[Dict[str, Any]] = Field(default_factory=list, description="SET variable declarations")
+    let_variables: List[Dict[str, Any]] = Field(default_factory=list, description="LET variable declarations")
+    connections: List[str] = Field(default_factory=list, description="Connection strings found")
+    includes: List[str] = Field(default_factory=list, description="Include/Must_Include files")
+    subroutines: List[str] = Field(default_factory=list, description="Subroutine definitions")
+
+
 class GetAppScriptArgs(BaseModel):
     """Arguments for the get_app_script tool"""
     app_id: str = Field(description="Qlik Sense application ID")
+    analyze_script: bool = Field(
+        default=False,
+        description="Enable detailed script analysis and parsing"
+    )
+    include_sections: bool = Field(
+        default=False,
+        description="Parse and return script sections/tabs"
+    )
+    include_line_numbers: bool = Field(
+        default=False,
+        description="Add line numbers to script output"
+    )
+    max_preview_length: Optional[int] = Field(
+        default=None,
+        description="Maximum characters to return for script preview (None for full script)"
+    )
 
 
 class GetAppDataSourcesArgs(BaseModel):
@@ -595,8 +645,212 @@ async def get_app_dimensions(
         client.disconnect()
 
 
-async def get_app_script(app_id: str) -> Dict[str, Any]:
-    """Retrieve the script from a Qlik Sense application"""
+def parse_script_sections(script: str) -> List[ScriptSection]:
+    """Parse script into sections/tabs based on ///$tab markers"""
+    sections = []
+    lines = script.split('\n')
+    current_section = None
+    current_content = []
+    current_start = 0
+    
+    for i, line in enumerate(lines, 1):
+        if line.strip().startswith('///$tab'):
+            # Save previous section if exists
+            if current_section:
+                sections.append(ScriptSection(
+                    name=current_section,
+                    start_line=current_start,
+                    end_line=i - 1,
+                    content='\n'.join(current_content),
+                    line_count=len(current_content)
+                ))
+            
+            # Start new section
+            parts = line.strip().split(None, 1)
+            current_section = parts[1] if len(parts) > 1 else f"Section_{len(sections) + 1}"
+            current_content = []
+            current_start = i + 1
+        elif current_section is not None:
+            current_content.append(line)
+    
+    # Save last section
+    if current_section and current_content:
+        sections.append(ScriptSection(
+            name=current_section,
+            start_line=current_start,
+            end_line=len(lines),
+            content='\n'.join(current_content),
+            line_count=len(current_content)
+        ))
+    
+    # If no sections found, treat entire script as one section
+    if not sections and script.strip():
+        sections.append(ScriptSection(
+            name="Main",
+            start_line=1,
+            end_line=len(lines),
+            content=script,
+            line_count=len(lines)
+        ))
+    
+    return sections
+
+
+def extract_binary_load_statements(script: str) -> List[BinaryLoadStatement]:
+    """Extract BINARY LOAD statements from the script"""
+    binary_loads = []
+    lines = script.split('\n')
+    
+    # Pattern to match BINARY LOAD statements (case-insensitive)
+    # Matches: BINARY [path];  or  BINARY LOAD FROM [path];
+    binary_pattern = re.compile(
+        r'^\s*BINARY\s+(?:LOAD\s+FROM\s+)?([^;]+);?\s*$',
+        re.IGNORECASE | re.MULTILINE
+    )
+    
+    for i, line in enumerate(lines, 1):
+        match = binary_pattern.match(line)
+        if match:
+            # Clean up the source app path - remove quotes, brackets, and whitespace
+            source_app = match.group(1).strip()
+            # Remove surrounding brackets if present
+            if source_app.startswith('[') and source_app.endswith(']'):
+                source_app = source_app[1:-1]
+            # Remove surrounding quotes
+            source_app = source_app.strip('"').strip("'")
+            
+            binary_loads.append(BinaryLoadStatement(
+                line_number=i,
+                source_app=source_app,
+                full_statement=line.strip()
+            ))
+    
+    return binary_loads
+
+
+def perform_script_analysis(script: str, include_sections: bool = False) -> ScriptAnalysis:
+    """Perform comprehensive analysis of the Qlik script"""
+    lines = script.split('\n')
+    
+    # Initialize counters
+    empty_lines = sum(1 for line in lines if not line.strip())
+    comment_lines = sum(1 for line in lines if line.strip().startswith('//') or line.strip().startswith('/*'))
+    
+    # Parse sections if requested
+    sections = parse_script_sections(script) if include_sections else []
+    
+    # Extract BINARY LOAD statements
+    binary_loads = extract_binary_load_statements(script)
+    
+    # Count statement types (case-insensitive)
+    script_upper = script.upper()
+    load_statements = len(re.findall(r'\bLOAD\b', script_upper))
+    store_statements = len(re.findall(r'\bSTORE\b', script_upper))
+    drop_statements = len(re.findall(r'\bDROP\b', script_upper))
+    
+    # Extract SET and LET variables
+    set_pattern = re.compile(r'^\s*SET\s+(\w+)\s*=\s*(.+?);?\s*$', re.IGNORECASE | re.MULTILINE)
+    let_pattern = re.compile(r'^\s*LET\s+(\w+)\s*=\s*(.+?);?\s*$', re.IGNORECASE | re.MULTILINE)
+    
+    set_variables = []
+    for match in set_pattern.finditer(script):
+        set_variables.append({
+            'name': match.group(1),
+            'value': match.group(2).strip(),
+            'line': script[:match.start()].count('\n') + 1
+        })
+    
+    let_variables = []
+    for match in let_pattern.finditer(script):
+        let_variables.append({
+            'name': match.group(1),
+            'value': match.group(2).strip(),
+            'line': script[:match.start()].count('\n') + 1
+        })
+    
+    # Extract connection strings (simplified - matches CONNECT TO statements)
+    connection_pattern = re.compile(r'^\s*(?:LIB\s+)?CONNECT\s+TO\s+(.+?);?\s*$', re.IGNORECASE | re.MULTILINE)
+    connections = [match.group(1).strip().strip('"').strip("'") for match in connection_pattern.finditer(script)]
+    
+    # Extract includes
+    include_pattern = re.compile(r'^\s*\$\((?:Must_)?Include\s*=\s*(.+?)\);?\s*$', re.IGNORECASE | re.MULTILINE)
+    includes = [match.group(1).strip().strip('"').strip("'") for match in include_pattern.finditer(script)]
+    
+    # Extract subroutines
+    sub_pattern = re.compile(r'^\s*SUB\s+(\w+)', re.IGNORECASE | re.MULTILINE)
+    subroutines = [match.group(1) for match in sub_pattern.finditer(script)]
+    
+    return ScriptAnalysis(
+        total_lines=len(lines),
+        empty_lines=empty_lines,
+        comment_lines=comment_lines,
+        sections=sections,
+        load_statements=load_statements,
+        store_statements=store_statements,
+        drop_statements=drop_statements,
+        binary_load_statements=binary_loads,
+        set_variables=set_variables,
+        let_variables=let_variables,
+        connections=connections,
+        includes=includes,
+        subroutines=subroutines
+    )
+
+
+def add_line_numbers(script: str) -> str:
+    """Add line numbers to script content"""
+    lines = script.split('\n')
+    numbered_lines = []
+    max_line_num = len(lines)
+    padding = len(str(max_line_num))
+    
+    for i, line in enumerate(lines, 1):
+        numbered_lines.append(f"{i:>{padding}}: {line}")
+    
+    return '\n'.join(numbered_lines)
+
+
+def sanitize_script(script: str) -> str:
+    """Sanitize sensitive information from script"""
+    # Mask passwords in connection strings
+    script = re.sub(
+        r'(PASSWORD\s*=\s*)[\'"]?[^\'";\s]+[\'"]?',
+        r'\1[MASKED]',
+        script,
+        flags=re.IGNORECASE
+    )
+    
+    # Mask user credentials
+    script = re.sub(
+        r'(USER\s+ID\s*=\s*)[\'"]?[^\'";\s]+[\'"]?',
+        r'\1[MASKED]',
+        script,
+        flags=re.IGNORECASE
+    )
+    
+    return script
+
+
+async def get_app_script(
+    app_id: str,
+    analyze_script: bool = False,
+    include_sections: bool = False,
+    include_line_numbers: bool = False,
+    max_preview_length: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Retrieve and optionally analyze the script from a Qlik Sense application.
+    
+    Args:
+        app_id: The Qlik Sense application ID
+        analyze_script: Enable detailed script analysis and parsing
+        include_sections: Parse and return script sections/tabs
+        include_line_numbers: Add line numbers to script output
+        max_preview_length: Maximum characters to return for script preview
+    
+    Returns:
+        JSON object containing script content and optional analysis
+    """
     from .qlik_client import QlikClient
     
     client = QlikClient()
@@ -613,21 +867,82 @@ async def get_app_script(app_id: str) -> Dict[str, Any]:
         # Get script from the app
         script_data = client.get_script()
         
+        if "error" in script_data:
+            return {
+                "error": script_data["error"],
+                "app_id": app_id,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        
+        script_content = script_data["script"]
+        
+        # Sanitize sensitive information
+        script_content = sanitize_script(script_content)
+        
+        # Apply preview length limit if specified
+        original_length = len(script_content)
+        if max_preview_length and len(script_content) > max_preview_length:
+            script_content = script_content[:max_preview_length]
+            is_truncated = True
+        else:
+            is_truncated = False
+        
+        # Add line numbers if requested
+        if include_line_numbers:
+            script_content = add_line_numbers(script_content)
+        
         # Build response
         response = {
             "app_id": app_id,
             "retrieved_at": datetime.utcnow().isoformat(),
-            "script": script_data["script"],
-            "script_length": script_data["script_length"]
+            "script": script_content,
+            "script_length": original_length,
+            "is_truncated": is_truncated
         }
+        
+        # Add truncation info if applicable
+        if is_truncated:
+            response["truncated_at"] = max_preview_length
+            response["truncation_note"] = f"Script truncated to {max_preview_length:,} characters (original: {original_length:,} characters)"
+        
+        # Perform analysis if requested
+        if analyze_script or include_sections:
+            analysis_result = perform_script_analysis(script_data["script"], include_sections=include_sections)
+            
+            # Convert Pydantic models to dict for JSON serialization
+            analysis_dict = analysis_result.model_dump() if hasattr(analysis_result, 'model_dump') else analysis_result.dict()
+            
+            # Add analysis to response
+            response["analysis"] = analysis_dict
+            
+            # Add summary statistics
+            response["summary"] = {
+                "total_lines": analysis_result.total_lines,
+                "sections_count": len(analysis_result.sections),
+                "load_statements": analysis_result.load_statements,
+                "store_statements": analysis_result.store_statements,
+                "binary_load_count": len(analysis_result.binary_load_statements),
+                "variables_count": len(analysis_result.set_variables) + len(analysis_result.let_variables),
+                "connections_count": len(analysis_result.connections),
+                "subroutines_count": len(analysis_result.subroutines)
+            }
+        
+        # Add sections separately if requested (for easier access)
+        if include_sections and not analyze_script:
+            sections = parse_script_sections(script_data["script"])
+            response["sections"] = [section.dict() for section in sections]
+            response["sections_count"] = len(sections)
         
         return response
         
     except Exception as e:
+        import traceback
         return {
             "error": str(e),
+            "error_type": type(e).__name__,
             "app_id": app_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "traceback": traceback.format_exc()
         }
     
     finally:
@@ -897,13 +1212,33 @@ TOOL_DEFINITIONS = {
         }
     },
     "get_app_script": {
-        "description": "Retrieve the script from a Qlik Sense application",
+        "description": "Retrieve and optionally analyze the script from a Qlik Sense application, including BINARY LOAD statement extraction",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "app_id": {
                     "type": "string",
                     "description": "Qlik Sense application ID"
+                },
+                "analyze_script": {
+                    "type": "boolean",
+                    "description": "Enable detailed script analysis including BINARY LOAD extraction, variable declarations, and statement counts",
+                    "default": False
+                },
+                "include_sections": {
+                    "type": "boolean",
+                    "description": "Parse and return script sections/tabs based on ///$tab markers",
+                    "default": False
+                },
+                "include_line_numbers": {
+                    "type": "boolean",
+                    "description": "Add line numbers to script output for easier reference",
+                    "default": False
+                },
+                "max_preview_length": {
+                    "type": "integer",
+                    "description": "Maximum characters to return for script preview (useful for very large scripts)",
+                    "default": None
                 }
             },
             "required": ["app_id"]

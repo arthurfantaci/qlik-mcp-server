@@ -12,6 +12,8 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 - 🔐 **Certificate-based authentication** with SSL security
 - 📦 **VizlibContainer support** with embedded object extraction
 - 🔗 **Master Item resolution** automatically resolves references to full expressions
+- 🔍 **BINARY LOAD detection** automatically extracts and analyzes BINARY dependencies
+- 📊 **Advanced Script Analysis** with section parsing, variable extraction, and statement counting
 - 📊 **9 comprehensive tools** covering all major Qlik Sense objects:
   - 📋 List all available applications with metadata
   - 📊 Retrieve measures with expressions and tags
@@ -20,7 +22,7 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
   - 📄 Retrieve sheets with metadata and properties
   - 🎨 Retrieve visualization objects from sheets with detailed properties
   - 📐 Retrieve dimensions with grouping and metadata
-  - 📜 Retrieve complete data loading scripts
+  - 📜 Retrieve and analyze data loading scripts with BINARY LOAD extraction
   - 🔗 Retrieve data sources and lineage information
 - 🤖 **MCP-compatible** for use with Claude Desktop and other AI tools
 - ⚡ **Production-ready** with comprehensive error handling
@@ -29,12 +31,14 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 ## Why This Matters
 
 🎯 **Business Impact**: This MCP server bridges the gap between Qlik Sense's powerful analytics and modern AI assistants, enabling:
+
 - **10x faster insights** - Natural language queries replace complex Qlik Sense expressions
 - **Democratized analytics** - Non-technical users can explore Qlik data through conversation
 - **Automated documentation** - AI can instantly analyze and document your entire Qlik application structure
 - **Enterprise-ready integration** - Production-grade WebSocket connections with certificate-based security
 
 💡 **Use Cases**:
+
 - **Automated QA**: AI assistants can validate measures, dimensions, and data models
 - **Documentation Generation**: Automatically create comprehensive app documentation
 - **Migration Analysis**: Assess complexity before Qlik app migrations or upgrades
@@ -79,7 +83,7 @@ cp .env.example .env
 
 Obtain SSL certificates from your Qlik Sense administrator and place them in the `certs/` directory:
 
-```
+```bash
 certs/
 ├── root.pem          # Server root certificate
 ├── client.pem        # Client certificate  
@@ -163,18 +167,86 @@ The server provides **9 comprehensive tools** for Qlik Sense analysis:
 | `get_app_sheets` | Retrieve sheets with metadata and properties |
 | `get_sheet_objects` | Retrieve visualization objects with detailed properties |
 | `get_app_dimensions` | Retrieve dimensions with grouping and metadata |
-| `get_app_script` | Retrieve complete data loading scripts |
+| `get_app_script` | Retrieve and analyze scripts with BINARY LOAD extraction |
 | `get_app_data_sources` | Retrieve data sources and lineage information |
+
+### Enhanced Script Tool Examples
+
+The `get_app_script` tool now includes powerful analysis capabilities. Here are examples of how to use it:
+
+#### Basic Script Retrieval
+
+```text
+"Get the script from app 12345678-abcd-1234-efgh-123456789abc"
+```
+
+#### Script with Full Analysis and BINARY LOAD Detection
+
+```text
+"Analyze the script from app 12345678-abcd-1234-efgh-123456789abc and show me all BINARY LOAD statements"
+
+Parameters used:
+- analyze_script: true
+- Result includes: BINARY LOAD statements with source apps, variable declarations, statement counts
+```
+
+#### Script with Section Parsing
+
+```text
+"Get the script from app 12345678-abcd-1234-efgh-123456789abc and break it down by sections"
+
+Parameters used:
+- include_sections: true  
+- Result: Script organized by ///$tab sections with line ranges
+```
+
+#### Script Preview with Line Numbers
+
+```text
+"Show me the first 1000 characters of the script from app 12345678-abcd-1234-efgh-123456789abc with line numbers"
+
+Parameters used:
+- max_preview_length: 1000
+- include_line_numbers: true
+- Result: Truncated script with line numbers for easy reference
+```
+
+#### Complete Analysis with All Features
+
+```text
+"Perform a comprehensive analysis of the script from app 12345678-abcd-1234-efgh-123456789abc including BINARY LOAD detection, sections, and show line numbers"
+
+Parameters used:
+- analyze_script: true
+- include_sections: true  
+- include_line_numbers: true
+- Result: Full analysis with BINARY LOAD extraction, sections, variables, and formatted output
+```
+
+**Script Analysis Response Includes:**
+
+- Total lines, empty lines, comment lines
+- Script sections/tabs with line ranges
+- BINARY LOAD statements with source applications and line numbers
+- Count of LOAD, STORE, DROP statements
+- SET and LET variable declarations
+- Connection strings (sanitized)
+- Include file references
+- Subroutine definitions
+
+📚 **[Complete Script Tool Usage Guide](docs/SCRIPT_TOOL_USAGE.md)** - Comprehensive documentation with all parameters and advanced examples
 
 ### Using with Different MCP Clients
 
 #### Cursor IDE
+
 - **Important**: Switch to Agent Mode (not Ask Mode) to access MCP tools
 - Tools are available through natural language commands
 - Cursor will ask for permission before executing tools (configurable in settings)
 - Example: "Use the Qlik tools to list all available applications"
 
 #### VS Code
+
 - Access tools through the MCP extension
 - Use the command palette or natural language interface
 - Tools execute with appropriate permissions
@@ -754,17 +826,9 @@ To add more Qlik tools:
 2. Add tool metadata to `TOOL_DEFINITIONS`
 3. Register the tool in `server.py` using `@mcp.tool()`
 
-### Available Tools
+### Tool Definitions
 
-1. **list_qlik_applications**: Lists all available Qlik applications with names and IDs
-2. **get_app_measures**: Retrieves all measures from a specific Qlik application
-3. **get_app_variables**: Retrieves all variables from a specific Qlik application
-4. **get_app_fields**: Retrieves all fields and table information from a specific Qlik application
-5. **get_app_sheets**: Retrieves all sheets from a specific Qlik application with metadata
-6. **get_sheet_objects**: Retrieves all visualization objects from a specific sheet with detailed properties
-7. **get_app_dimensions**: Retrieves all dimensions from a specific Qlik application with metadata
-8. **get_app_script**: Retrieves the complete data loading script from a specific Qlik application
-9. **get_app_data_sources**: Retrieves data sources from the application's lineage (LOAD/STORE statements)
+The server provides 9 comprehensive tools for complete Qlik Sense analysis. See the main tools table above for complete details and parameters.
 
 ## Limitations
 
@@ -788,6 +852,18 @@ Potential improvements for production use:
 - Support for multiple concurrent app connections
 - Detailed logging and monitoring
 - WebSocket reconnection handling
+
+## Recent Enhancements
+
+### Script Tool v2.0 (Latest)
+
+- ✨ **BINARY LOAD Detection**: Automatically extracts all BINARY LOAD statements with source applications
+- 📑 **Section Parsing**: Organizes scripts by ///$tab markers with line ranges
+- 📊 **Comprehensive Analysis**: Statement counting, variable extraction, connection detection
+- 🔒 **Security Enhancements**: Automatic password and credential sanitization
+- 📏 **Line Numbering**: Optional line numbers for easy reference
+- ✂️ **Script Preview**: Configurable truncation for large scripts
+- 📚 **Enhanced Documentation**: Complete usage guide with examples
 
 ## License
 

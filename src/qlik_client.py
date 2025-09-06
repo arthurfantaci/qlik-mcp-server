@@ -783,9 +783,6 @@ class QlikClient:
         embedded_objects = []
         
         try:
-            # Debug: Print what we got from GetEffectiveProperties (commented out for production)
-            # print(f"DEBUG: Effective properties for {container_id}: {json.dumps(effective_props, indent=2) if effective_props else 'None'}")
-            
             # Try to extract tabs/panels structure from effective properties
             tabs = []
             vizlib_container_objects = []
@@ -1606,10 +1603,6 @@ class QlikClient:
         
         self.request_id += 1
         
-        # Debug output for GetObject calls
-        # if method == "GetObject":
-        #     print(f"DEBUG: GetObject called with handle={handle}, params={params}")
-        
         # Handle params based on method type
         if method == "CreateSessionObject" and isinstance(params, list):
             # CreateSessionObject expects array params
@@ -1649,8 +1642,6 @@ class QlikClient:
         
         # Send request
         request_json = json.dumps(request)
-        # if method == "GetObject":
-        #     print(f"DEBUG: Sending request: {request_json}")
         self.ws.send(request_json)
         
         # Set receive timeout

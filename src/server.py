@@ -340,26 +340,69 @@ async def handle_get_app_dimensions(
 
 
 @mcp.tool()
-async def handle_get_app_script(app_id: str) -> Dict[str, Any]:
+async def handle_get_app_script(
+    app_id: str,
+    analyze_script: bool = False,
+    include_sections: bool = False,
+    include_line_numbers: bool = False,
+    max_preview_length: int = None
+) -> Dict[str, Any]:
     """
-    MCP tool handler for retrieving the script from a Qlik Sense application.
+    MCP tool handler for retrieving and analyzing the script from a Qlik Sense application.
     
     This tool connects to a Qlik Sense server, opens the specified application,
     retrieves the complete application script used for data loading and transformation,
-    and returns it as structured JSON for analysis.
+    optionally performs detailed analysis including BINARY LOAD extraction,
+    and returns it as structured JSON.
+    
+    Args:
+        app_id: The Qlik Sense application ID
+        analyze_script: Enable detailed script analysis and parsing
+        include_sections: Parse and return script sections/tabs
+        include_line_numbers: Add line numbers to script output
+        max_preview_length: Maximum characters to return for script preview
     """
     print(f"📜 Retrieving script for app: {app_id}", file=sys.stderr)
     print(f"📜 Environment check: QLIK_SERVER_URL={os.getenv('QLIK_SERVER_URL')}", file=sys.stderr)
     
+    if analyze_script:
+        print(f"🔍 Script analysis enabled", file=sys.stderr)
+    if include_sections:
+        print(f"📑 Section parsing enabled", file=sys.stderr)
+    if max_preview_length:
+        print(f"✂️ Preview limited to {max_preview_length:,} characters", file=sys.stderr)
+    
     try:
-        # Call the actual implementation
-        result = await get_app_script(app_id=app_id)
+        # Call the actual implementation with all parameters
+        result = await get_app_script(
+            app_id=app_id,
+            analyze_script=analyze_script,
+            include_sections=include_sections,
+            include_line_numbers=include_line_numbers,
+            max_preview_length=max_preview_length
+        )
         
         if "error" in result:
             print(f"❌ Error: {result['error']}", file=sys.stderr)
         else:
             script_length = result.get('script_length', 0)
             print(f"✅ Retrieved script from app ({script_length:,} characters)", file=sys.stderr)
+            
+            if "analysis" in result:
+                analysis = result["analysis"]
+                print(f"📊 Script Analysis:", file=sys.stderr)
+                print(f"   • Total lines: {analysis['total_lines']:,}", file=sys.stderr)
+                print(f"   • Sections: {len(analysis['sections'])}", file=sys.stderr)
+                print(f"   • LOAD statements: {analysis['load_statements']}", file=sys.stderr)
+                print(f"   • BINARY LOAD statements: {len(analysis['binary_load_statements'])}", file=sys.stderr)
+                
+                if analysis['binary_load_statements']:
+                    print(f"   📦 BINARY LOAD sources:", file=sys.stderr)
+                    for binary in analysis['binary_load_statements']:
+                        print(f"      - Line {binary['line_number']}: {binary['source_app']}", file=sys.stderr)
+            
+            if result.get('is_truncated'):
+                print(f"⚠️ Script truncated to {max_preview_length:,} characters", file=sys.stderr)
         
         return result
         
