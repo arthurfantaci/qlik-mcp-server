@@ -95,7 +95,11 @@ python -m src.qlik_client
 - **Session object pattern** - Creates MeasureList session objects to retrieve measures
 - **Environment-based configuration** - All connection details configured via `.env` file
 - **Enhanced Script Analysis** - Comprehensive parsing with regex patterns for BINARY LOAD extraction
-- **Pydantic Models** - Type-safe request/response handling with validation
+- **Pydantic Models** - Type-safe request/response handling with comprehensive field validation:
+  - Annotated types with Field descriptions and constraints
+  - Custom validators for app_id validation and length checking
+  - Automatic schema generation for FastMCP tools
+  - Runtime parameter validation with clear error messages for LLMs
 
 ### Connection Flow
 
@@ -109,7 +113,11 @@ python -m src.qlik_client
 
 ### Tool Implementation Patterns
 
-**Parameter Validation**: All tools use Pydantic models (defined in `tools.py`) for parameter validation and type safety.
+**Parameter Validation**: All tools use enhanced Pydantic models (defined in `tools.py`) for comprehensive parameter validation and type safety:
+- Field-level constraints (min_length, max_length, ge for numeric values)
+- Custom validators for app_id validation (prevents empty/whitespace values)
+- Annotated types with detailed descriptions for each parameter
+- Automatic validation error messages formatted for LLM understanding
 
 **Common Parameters**:
 - All tools except `list_qlik_applications` require `app_id`
@@ -151,13 +159,13 @@ Certificate paths (relative to project root):
 
 When adding new Qlik tools, follow this pattern:
 
-1. **Define Pydantic model** in `tools.py` for parameter validation
+1. **Define Pydantic model** in `tools.py` for parameter validation with proper Field annotations
 2. **Implement tool function** in `tools.py` using appropriate Qlik API pattern:
    - Session objects for metadata retrieval (measures, variables, dimensions, fields)
    - Handle-based access for sheet objects
    - Direct API calls for scripts and lineage
-3. **Register tool** in `server.py` using `@mcp.tool()` decorator
-4. **Add to TOOL_DEFINITIONS** for metadata
+3. **Register tool** in `server.py` using `@mcp.tool()` decorator accepting the Pydantic model
+4. **FastMCP auto-generates schemas** from Pydantic models - no manual schema definition needed
 5. **Create test file** in `tests/` following existing patterns
 
 ### Critical Qlik API Patterns

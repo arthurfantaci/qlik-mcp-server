@@ -446,6 +446,10 @@ The data sources tool will return:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `app_id` | string | Yes | Qlik Sense application ID |
+| `analyze_script` | boolean | No | Enable comprehensive script analysis including BINARY LOAD extraction (default: false) |
+| `include_sections` | boolean | No | Parse script into sections/tabs based on ///$tab markers (default: false) |
+| `include_line_numbers` | boolean | No | Add line numbers to script output (default: false) |
+| `max_preview_length` | integer | No | Maximum characters to return for script preview (minimum: 100) |
 
 ### `get_app_data_sources` Tool
 
@@ -453,9 +457,9 @@ The data sources tool will return:
 |-----------|------|----------|-------------|
 | `app_id` | string | Yes | Qlik Sense application ID |
 | `include_resident` | boolean | No | Include resident table sources (default: true) |
-| `include_file` | boolean | No | Include file-based sources (default: true) |
-| `include_binary` | boolean | No | Include binary load sources (default: true) |
-| `include_inline` | boolean | No | Include inline data sources (default: true) |
+| `include_file_sources` | boolean | No | Include file-based sources (default: true) |
+| `include_binary_sources` | boolean | No | Include binary load sources (default: true) |
+| `include_inline_sources` | boolean | No | Include inline data sources (default: true) |
 
 ## Response Formats
 
@@ -822,9 +826,10 @@ python -m src.qlik_client
 
 To add more Qlik tools:
 
-1. Define the tool function in `tools.py`
-2. Add tool metadata to `TOOL_DEFINITIONS`
-3. Register the tool in `server.py` using `@mcp.tool()`
+1. Define a Pydantic model in `tools.py` for parameter validation with Field annotations
+2. Implement the tool function in `tools.py`
+3. Register the tool in `server.py` using `@mcp.tool()` accepting the Pydantic model
+4. FastMCP automatically generates schemas from Pydantic models
 
 ### Tool Definitions
 

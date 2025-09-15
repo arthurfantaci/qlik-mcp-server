@@ -11,7 +11,7 @@ Complete reference for all 9 MCP tools provided by the Qlik MCP Server.
 | `get_app_variables` | Get variables from app | `app_id` | `include_definition`, `include_tags`, `show_reserved`, `show_config` |
 | `get_app_fields` | Get fields and tables | `app_id` | Various visibility flags |
 | `get_app_sheets` | Get sheets from app | `app_id` | `include_thumbnail`, `include_metadata` |
-| `get_sheet_objects` | Get objects from sheet | `app_id`, `sheet_id` | `include_properties`, `include_layout`, `include_data` |
+| `get_sheet_objects` | Get objects from sheet | `app_id`, `sheet_id` | `include_properties`, `include_layout`, `include_data_definition`, `resolve_master_items` |
 | `get_app_dimensions` | Get dimensions from app | `app_id` | `include_title`, `include_tags`, `include_grouping`, `include_info` |
 | `get_app_script` | Get data loading script | `app_id` | None |
 | `get_app_data_sources` | Get data sources lineage | `app_id` | Source type filters |
@@ -210,7 +210,8 @@ Retrieves all visualization objects from a specific sheet.
 - `sheet_id` (string, required): Sheet ID
 - `include_properties` (boolean, optional): Include object properties (default: true)
 - `include_layout` (boolean, optional): Include object layout (default: true)
-- `include_data` (boolean, optional): Include data definitions (default: false)
+- `include_data_definition` (boolean, optional): Include data definitions (default: true)
+- `resolve_master_items` (boolean, optional): Resolve Master Item references to full expressions (default: true)
 
 **Response**:
 ```json
@@ -240,7 +241,8 @@ Retrieves all visualization objects from a specific sheet.
   "options": {
     "include_properties": true,
     "include_layout": true,
-    "include_data": false
+    "include_data_definition": true,
+    "resolve_master_items": true
   }
 }
 ```
@@ -288,18 +290,77 @@ Retrieves all dimensions from a specific Qlik Sense application.
 
 ### `get_app_script`
 
-Retrieves the complete data loading script from a specific Qlik Sense application.
+Retrieves and optionally analyzes the complete data loading script from a specific Qlik Sense application.
 
 **Parameters**:
 - `app_id` (string, required): Qlik Sense application ID
+- `analyze_script` (boolean, optional): Enable comprehensive script analysis including BINARY LOAD extraction (default: false)
+- `include_sections` (boolean, optional): Parse script into sections/tabs based on ///$tab markers (default: false)
+- `include_line_numbers` (boolean, optional): Add line numbers to script output (default: false)
+- `max_preview_length` (integer, optional): Maximum characters to return for script preview (minimum: 100)
 
-**Response**:
+**Basic Response**:
 ```json
 {
   "app_id": "12345678-abcd-1234-efgh-123456789abc",
   "script": "// Main data loading script\nLOAD * FROM 'data.qvd' (qvd);\n",
   "script_length": 39439,
   "retrieved_at": "2025-08-29T10:30:00Z"
+}
+```
+
+**Enhanced Analysis Response** (when `analyze_script: true`):
+```json
+{
+  "app_id": "12345678-abcd-1234-efgh-123456789abc",
+  "script": "// Main data loading script\nLOAD * FROM 'data.qvd' (qvd);\n",
+  "script_length": 39439,
+  "retrieved_at": "2025-08-29T10:30:00Z",
+  "analysis": {
+    "total_lines": 245,
+    "empty_lines": 12,
+    "comment_lines": 8,
+    "sections": [
+      {
+        "name": "Main",
+        "start_line": 1,
+        "end_line": 245,
+        "content": "...",
+        "line_count": 245
+      }
+    ],
+    "load_statements": 15,
+    "store_statements": 2,
+    "drop_statements": 1,
+    "binary_load_statements": [
+      {
+        "line_number": 5,
+        "source_app": "CustomerAnalytics.qvf",
+        "full_statement": "BINARY [lib://Apps/CustomerAnalytics.qvf];"
+      }
+    ],
+    "set_variables": [
+      {
+        "name": "vEnvironment",
+        "value": "dev",
+        "line": 10
+      }
+    ],
+    "let_variables": [],
+    "connections": ["lib://DataFiles"],
+    "includes": ["lib://Scripts/common.qvs"],
+    "subroutines": ["LoadCustomerData"]
+  },
+  "summary": {
+    "total_lines": 245,
+    "sections_count": 1,
+    "load_statements": 15,
+    "store_statements": 2,
+    "binary_load_count": 1,
+    "variables_count": 1,
+    "connections_count": 1,
+    "subroutines_count": 1
+  }
 }
 ```
 
@@ -312,9 +373,9 @@ Retrieves data sources and lineage information from a specific Qlik Sense applic
 **Parameters**:
 - `app_id` (string, required): Qlik Sense application ID
 - `include_resident` (boolean, optional): Include resident sources (default: true)
-- `include_file` (boolean, optional): Include file sources (default: true)
-- `include_binary` (boolean, optional): Include binary sources (default: true)
-- `include_inline` (boolean, optional): Include inline sources (default: true)
+- `include_file_sources` (boolean, optional): Include file sources (default: true)
+- `include_binary_sources` (boolean, optional): Include binary sources (default: true)
+- `include_inline_sources` (boolean, optional): Include inline sources (default: true)
 
 **Response**:
 ```json
@@ -343,9 +404,9 @@ Retrieves data sources and lineage information from a specific Qlik Sense applic
   "retrieved_at": "2025-08-29T10:30:00Z",
   "options": {
     "include_resident": true,
-    "include_file": true,
-    "include_binary": true,
-    "include_inline": true
+    "include_file_sources": true,
+    "include_binary_sources": true,
+    "include_inline_sources": true
   }
 }
 ```
