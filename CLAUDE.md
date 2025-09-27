@@ -16,15 +16,21 @@ cp .env.example .env                  # Configure Qlik server details
 # Run server
 uv run python -m src.server           # Start MCP server
 
-# Test single tool
-uv run python tests/test_qlik_connection.py    # Test connection
+# Test connection and individual tools
+uv run python tests/test_qlik_connection.py    # Test basic connection
 uv run python tests/test_list_apps.py          # Test app listing
 uv run python tests/test_mcp_tool.py           # Test measures and MCP integration
+uv run python tests/test_variables.py          # Test variable retrieval
+uv run python tests/test_fields.py             # Test field retrieval
+uv run python tests/test_sheets.py             # Test sheet retrieval
+uv run python tests/test_dimensions.py         # Test dimension retrieval
 uv run python tests/test_script.py             # Test script analysis with BINARY LOAD
+uv run python tests/test_data_sources.py       # Test data source retrieval
+uv run python tests/test_binary_extraction.py  # Test BINARY LOAD extraction
 uv run python tests/test_vizlib_container.py   # Test VizlibContainer extraction
 
-# Test all tools
-uv run python tests/test_mcp_tool.py           # Test MCP integration
+# Test multiple tools together
+uv run python tests/test_both_tools.py         # Test multiple tools
 
 # Debug WebSocket client
 uv run python -m src.qlik_client
@@ -102,3 +108,20 @@ Enhanced object extraction from VizlibContainer visualizations:
 - Extracts child object properties and expressions
 - Resolves master item references to full definitions
 - Handles complex nested visualization structures
+
+## Testing
+
+Run individual test files to verify functionality:
+
+- Connection: `uv run python tests/test_qlik_connection.py`
+- Applications: `uv run python tests/test_list_apps.py`
+- All tools: `uv run python tests/test_mcp_tool.py`
+- Specific features: `uv run python tests/test_script.py`, `test_vizlib_container.py`, etc.
+
+## Key Implementation Notes
+
+- Always use `uv run` prefix for command execution
+- SSL certificates required in `certs/` directory
+- Environment configuration via `.env` file
+- Python 3.10+ required for FastMCP compatibility
+- WebSocket connections must be properly closed to prevent resource leaks

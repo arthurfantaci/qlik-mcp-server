@@ -66,7 +66,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh  # Install UV if not already ins
 uv sync  # Creates virtual environment and installs dependencies
 
 # Option B: Install with pip (legacy)
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Configuration
@@ -745,6 +745,8 @@ The data sources tool will return:
 
 ```text
 qlik-mcp-server/
+├── .claude/                # Claude Code configuration
+│   └── settings.local.json        # Local Claude settings
 ├── src/                    # Core application code
 │   ├── __init__.py         # Package initialization
 │   ├── server.py           # FastMCP server implementation
@@ -753,14 +755,15 @@ qlik-mcp-server/
 ├── tests/                  # Test suite
 │   ├── test_qlik_connection.py    # Test basic connection
 │   ├── test_list_apps.py          # Test application listing
-│   ├── test_mcp_tool.py            # Test MCP tool functions (includes measures)
+│   ├── test_mcp_tool.py           # Test MCP tool functions (includes measures)
 │   ├── test_variables.py          # Test variable retrieval
 │   ├── test_fields.py             # Test field retrieval
 │   ├── test_sheets.py             # Test sheet retrieval
 │   ├── test_dimensions.py         # Test dimension retrieval
-│   ├── test_script.py             # Test script retrieval
+│   ├── test_script.py             # Test script retrieval and analysis
 │   ├── test_data_sources.py       # Test data source retrieval
-│   ├── test_mcp_tool.py           # Test MCP tool functions
+│   ├── test_binary_extraction.py  # Test BINARY LOAD extraction
+│   ├── test_vizlib_container.py   # Test VizlibContainer functionality
 │   └── test_both_tools.py         # Test multiple tools together
 ├── examples/               # Configuration examples
 │   ├── cursor_config.json         # Cursor IDE configuration
@@ -768,7 +771,10 @@ qlik-mcp-server/
 │   ├── claude_desktop_config.json # Claude Desktop configuration
 │   └── README.md           # Configuration instructions
 ├── docs/                   # Documentation
-│   └── CERTIFICATES.md     # Certificate setup guide
+│   ├── CERTIFICATES.md     # Certificate setup guide
+│   ├── API_REFERENCE.md    # Complete API documentation
+│   ├── SCRIPT_TOOL_USAGE.md # Script tool usage guide
+│   └── TROUBLESHOOTING.md  # Troubleshooting guide
 ├── certs/                  # SSL certificates (gitignored)
 │   ├── root.pem           # Server root certificate
 │   ├── client.pem         # Client certificate
@@ -776,9 +782,12 @@ qlik-mcp-server/
 ├── .env.example           # Example environment configuration
 ├── .env                   # Environment configuration (gitignored)
 ├── .gitignore            # Git ignore rules
-├── requirements.txt       # Python dependencies
+├── pyproject.toml         # Python project configuration and dependencies
+├── uv.lock               # UV lockfile (gitignored)
 ├── start_server.py       # Server startup script
 ├── CLAUDE.md             # Claude Code instructions
+├── CONTRIBUTING.md       # Contribution guidelines
+├── LICENSE               # MIT license
 └── README.md             # This documentation
 ```
 
@@ -800,7 +809,7 @@ qlik-mcp-server/
 
 ### MCP Issues
 
-1. **Server won't start**: Check Python version (3.8+ required)
+1. **Server won't start**: Check Python version (3.10+ required)
 2. **Tool not found**: Restart Claude Desktop after configuration changes
 3. **No response**: Check server logs for errors
 
@@ -816,15 +825,17 @@ python tests/test_qlik_connection.py
 
 # Test individual tools
 python tests/test_list_apps.py          # Application listing
-python tests/test_variables.py          # Variable retrieval  
+python tests/test_mcp_tool.py           # MCP tool functions (includes measures)
+python tests/test_variables.py          # Variable retrieval
 python tests/test_fields.py             # Field and table information
 python tests/test_sheets.py             # Sheet metadata
 python tests/test_dimensions.py         # Dimension analysis
-python tests/test_script.py             # Script retrieval
+python tests/test_script.py             # Script retrieval and analysis
 python tests/test_data_sources.py       # Data source lineage
+python tests/test_binary_extraction.py  # BINARY LOAD extraction
+python tests/test_vizlib_container.py   # VizlibContainer functionality
 
 # Test MCP functionality
-python tests/test_mcp_tool.py           # Direct tool functions
 python tests/test_both_tools.py         # Multiple tools together
 
 # Test Qlik client directly
