@@ -1,3 +1,3 @@
-"""Qlik MCP Server - Lightweight MCP server for Qlik Sense measure retrieval"""
+"""Qlik MCP Server - Comprehensive MCP server for Qlik Sense application access"""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

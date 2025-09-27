@@ -12,36 +12,36 @@ load_dotenv()
 
 
 class QlikClient:
-    """Lightweight Qlik Engine API client focused on measure retrieval"""
-    
+    """Comprehensive Qlik Engine API client for accessing all Qlik Sense application objects"""
+
     def __init__(self):
         """Initialize client with configuration from environment"""
         self.server_url = os.getenv("QLIK_SERVER_URL")
         self.server_port = os.getenv("QLIK_SERVER_PORT", "4747")
         self.user_directory = os.getenv("QLIK_USER_DIRECTORY", "INTERNAL")
         self.user_id = os.getenv("QLIK_USER_ID", "sa_engine")
-        
+
         # Certificate paths
         self.cert_root = os.getenv("QLIK_CERT_ROOT", "certs/root.pem")
         self.cert_client = os.getenv("QLIK_CERT_CLIENT", "certs/client.pem")
         self.cert_key = os.getenv("QLIK_CERT_KEY", "certs/client_key.pem")
-        
+
         # Timeout settings
         self.timeout = int(os.getenv("WEBSOCKET_TIMEOUT", "30"))
         self.recv_timeout = int(os.getenv("WEBSOCKET_RECV_TIMEOUT", "60"))
-        
+
         # Connection state
         self.ws: Optional[websocket.WebSocket] = None
         self.request_id = 0
         self.app_handle: Optional[int] = None
-        
+
     def connect(self, app_id: str) -> bool:
         """Connect to Qlik Engine and open specified app"""
         try:
             # First try connecting to global context and using OpenDoc
             url = f"wss://{self.server_url}:{self.server_port}/app/"
             print(f"Connecting to: {url}")
-            
+
             # Setup SSL context with certificates
             sslopt = {
                 "cert_reqs": ssl.CERT_REQUIRED,
@@ -51,12 +51,12 @@ class QlikClient:
                 "check_hostname": False,
                 "ssl_version": ssl.PROTOCOL_TLS
             }
-            
+
             # Setup headers
             headers = {
                 "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}"
             }
-            
+
             # Create WebSocket connection
             self.ws = websocket.create_connection(
                 url,
@@ -64,9 +64,9 @@ class QlikClient:
                 header=headers,
                 timeout=self.timeout
             )
-            
+
             print("Connected to Qlik Engine")
-            
+
             # Open the app using OpenDoc
             print(f"Opening app: {app_id}")
             result = self._send_request(
@@ -74,25 +74,25 @@ class QlikClient:
                 -1,  # Global handle
                 {"qDocName": app_id}
             )
-            
+
             if result and "qReturn" in result and "qHandle" in result["qReturn"]:
                 self.app_handle = result["qReturn"]["qHandle"]
                 print(f"App opened with handle: {self.app_handle}")
-                
+
                 # Verify by getting app layout
                 layout = self._send_request("GetAppLayout", self.app_handle)
                 if layout:
                     app_title = layout.get("qTitle", app_id)
                     print(f"Successfully opened app: {app_title}")
                     return True
-            
+
             print("Failed to open app")
             return False
-            
+
         except Exception as e:
             print(f"Connection failed: {e}")
             return False
-    
+
     def disconnect(self):
         """Close WebSocket connection"""
         if self.ws:
@@ -100,14 +100,14 @@ class QlikClient:
             self.ws = None
             self.app_handle = None
             print("Disconnected from Qlik Engine")
-    
+
     def connect_global(self) -> bool:
         """Connect to Qlik Engine global context (for listing apps)"""
         try:
             # Connect to global context (no specific app)
             url = f"wss://{self.server_url}:{self.server_port}/app/"
             print(f"Connecting to global context: {url}")
-            
+
             # Setup SSL context with certificates
             sslopt = {
                 "cert_reqs": ssl.CERT_REQUIRED,
@@ -117,12 +117,12 @@ class QlikClient:
                 "check_hostname": False,
                 "ssl_version": ssl.PROTOCOL_TLS
             }
-            
+
             # Setup headers
             headers = {
                 "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}"
             }
-            
+
             # Create WebSocket connection
             self.ws = websocket.create_connection(
                 url,
@@ -130,30 +130,30 @@ class QlikClient:
                 header=headers,
                 timeout=self.timeout
             )
-            
+
             print("Connected to Qlik Engine global context")
             return True
-            
+
         except Exception as e:
             print(f"Global connection failed: {e}")
             return False
-    
+
     def get_doc_list(self) -> Dict[str, Any]:
         """Get list of all available applications"""
         if not self.ws:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Fetching application list...")
-            
+
             # Get document list using global handle (-1)
             result = self._send_request("GetDocList", -1)
-            
+
             apps = []
             if result and "qDocList" in result:
                 doc_list = result["qDocList"]
                 print(f"Found {len(doc_list)} applications")
-                
+
                 for app in doc_list:
                     app_info = {
                         "app_id": app.get("qDocId", ""),
@@ -163,39 +163,39 @@ class QlikClient:
                         "doc_type": app.get("qDocType", "")
                     }
                     apps.append(app_info)
-            
+
             return {
                 "applications": apps,
                 "count": len(apps)
             }
-            
+
         except Exception as e:
             print(f"Error fetching application list: {e}")
             raise
-    
+
     def get_measures(self, include_expression: bool = True, include_tags: bool = True) -> Dict[str, Any]:
         """Retrieve all measures from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             # Create MeasureList session object
             print("Creating MeasureList session object...")
-            
+
             # Build qData paths based on options
             q_data = {
                 "title": "/qMetaDef/title",
                 "description": "/qMetaDef/description",
                 "id": "/qInfo/qId"
             }
-            
+
             if include_expression:
                 q_data["expression"] = "/qMeasure/qDef"
                 q_data["label"] = "/qMeasure/qLabel"
-            
+
             if include_tags:
                 q_data["tags"] = "/qMetaDef/tags"
-            
+
             create_params = [
                 {
                     "qInfo": {
@@ -207,24 +207,24 @@ class QlikClient:
                     }
                 }
             ]
-            
+
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
                 create_params
             )
-            
+
             if not create_result or "qReturn" not in create_result:
                 raise ValueError("Failed to create MeasureList object")
-            
+
             measure_list_handle = create_result["qReturn"]["qHandle"]
             print(f"Created MeasureList with handle: {measure_list_handle}")
-            
+
             # Get layout containing measure data
             layout = self._send_request("GetLayout", measure_list_handle)
             # The actual data is nested under qLayout
             actual_layout = layout.get("qLayout", layout) if layout else {}
-            
+
             # Extract measures from layout
             measures = []
             if actual_layout and "qMeasureList" in actual_layout:
@@ -235,13 +235,13 @@ class QlikClient:
                     q_data = item.get("qData", {})
                     q_info = item.get("qInfo", {})
                     q_meta = item.get("qMeta", {})
-                    
+
                     measure = {
                         "id": q_data.get("id", q_info.get("qId", "")),
                         "title": q_data.get("title", q_meta.get("title", "")),
                         "description": q_data.get("description", q_meta.get("description", ""))
                     }
-                    
+
                     if include_expression:
                         # Try to get expression from qData first, then fall back to qMeasure
                         expression_data = q_data.get("expression", {})
@@ -250,36 +250,42 @@ class QlikClient:
                         else:
                             # Fallback to standard qMeasure structure
                             q_measure = item.get("qMeasure", {})
-                            measure["expression"] = q_measure.get("qDef", "") or str(expression_data) if expression_data else ""
-                        
+                            measure["expression"] = (
+                                q_measure.get("qDef", "") or
+                                str(expression_data) if expression_data else ""
+                            )
+
                         # Try to get label
                         label_data = q_data.get("label", {})
                         if isinstance(label_data, dict):
                             measure["label"] = label_data.get("qExpr", "")
                         else:
-                            measure["label"] = item.get("qMeasure", {}).get("qLabel", "") or str(label_data) if label_data else ""
-                    
+                            measure["label"] = (
+                                item.get("qMeasure", {}).get("qLabel", "") or
+                                str(label_data) if label_data else ""
+                            )
+
                     if include_tags:
                         measure["tags"] = q_data.get("tags", [])
-                    
+
                     measures.append(measure)
-            
-            # Clean up session object (skip for now to avoid errors)
-            # Note: In production, should properly destroy session objects
+
+            # Session object cleanup deferred to prevent connection issues
+            # Session objects are automatically cleaned when connection closes
             print(f"Found {len(measures)} measures")
-            
+
             return {
                 "measures": measures,
                 "count": len(measures)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving measures: {e}")
             raise
-    
+
     def get_variables(
-        self, 
-        include_definition: bool = True, 
+        self,
+        include_definition: bool = True,
         include_tags: bool = True,
         show_reserved: bool = True,
         show_config: bool = True
@@ -287,22 +293,22 @@ class QlikClient:
         """Retrieve all variables from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             # Create VariableList session object
             print("Creating VariableList session object...")
-            
+
             # Build qData paths based on options
             q_data = {
                 "name": "/qName"
             }
-            
+
             if include_definition:
                 q_data["definition"] = "/qDefinition"
-            
+
             if include_tags:
                 q_data["tags"] = "/tags"
-            
+
             create_params = [
                 {
                     "qInfo": {
@@ -316,24 +322,24 @@ class QlikClient:
                     }
                 }
             ]
-            
+
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
                 create_params
             )
-            
+
             if not create_result or "qReturn" not in create_result:
                 raise ValueError("Failed to create VariableList object")
-            
+
             variable_list_handle = create_result["qReturn"]["qHandle"]
             print(f"Created VariableList with handle: {variable_list_handle}")
-            
+
             # Get layout containing variable data
             layout = self._send_request("GetLayout", variable_list_handle)
             # The actual data is nested under qLayout
             actual_layout = layout.get("qLayout", layout) if layout else {}
-            
+
             # Extract variables from layout
             variables = []
             if actual_layout and "qVariableList" in actual_layout:
@@ -343,38 +349,38 @@ class QlikClient:
                     # Parse both qData (custom paths) and standard qInfo
                     q_data = item.get("qData", {})
                     q_info = item.get("qInfo", {})
-                    
+
                     variable = {
                         "name": q_data.get("name", q_info.get("qId", ""))
                     }
-                    
+
                     if include_definition:
                         variable["definition"] = q_data.get("definition", "")
-                    
+
                     if include_tags:
                         variable["tags"] = q_data.get("tags", [])
-                    
+
                     # Add additional metadata if available
                     if "qMeta" in item:
                         q_meta = item["qMeta"]
                         variable["is_reserved"] = q_meta.get("qIsReserved", False)
                         variable["is_config"] = q_meta.get("qIsConfig", False)
-                    
+
                     variables.append(variable)
-            
-            # Clean up session object (skip for now to avoid errors)
-            # Note: In production, should properly destroy session objects
+
+            # Session object cleanup deferred to prevent connection issues
+            # Session objects are automatically cleaned when connection closes
             print(f"Found {len(variables)} variables")
-            
+
             return {
                 "variables": variables,
                 "count": len(variables)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving variables: {e}")
             raise
-    
+
     def get_fields(
         self,
         show_system: bool = True,
@@ -387,11 +393,11 @@ class QlikClient:
         """Retrieve all fields from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             # Create FieldList session object
             print("Creating FieldList session object...")
-            
+
             create_params = [
                 {
                     "qInfo": {
@@ -407,35 +413,35 @@ class QlikClient:
                     }
                 }
             ]
-            
+
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
                 create_params
             )
-            
+
             if not create_result or "qReturn" not in create_result:
                 raise ValueError("Failed to create FieldList object")
-            
+
             field_list_handle = create_result["qReturn"]["qHandle"]
             print(f"Created FieldList with handle: {field_list_handle}")
-            
+
             # Get layout containing field data
             layout = self._send_request("GetLayout", field_list_handle)
             # The actual data is nested under qLayout
             actual_layout = layout.get("qLayout", layout) if layout else {}
-            
+
             # Extract fields from layout
             fields = []
             tables = set()
-            
+
             if actual_layout and "qFieldList" in actual_layout:
                 items = actual_layout["qFieldList"].get("qItems", [])
                 print(f"Processing {len(items)} fields...")
-                
+
                 for item in items:
                     field_name = item.get("qName", "")
-                    
+
                     field_info = {
                         "name": field_name,
                         "is_system": item.get("qIsSystem", False),
@@ -444,43 +450,43 @@ class QlikClient:
                         "is_numeric": item.get("qIsNumeric", False),
                         "cardinal": item.get("qCardinal", 0)
                     }
-                    
+
                     # Add source table information if available
                     src_tables = item.get("qSrcTables", [])
                     if src_tables:
                         field_info["source_tables"] = src_tables
                         # Add tables to our set for summary
                         tables.update(src_tables)
-                    
+
                     # Add tags if available
                     tags = item.get("qTags", [])
                     if tags:
                         field_info["tags"] = tags
-                    
+
                     # Add field type information
                     if "qAndMode" in item:
                         field_info["and_mode"] = item["qAndMode"]
-                    
+
                     fields.append(field_info)
-            
+
             # Convert tables set to sorted list for consistent output
             tables_list = sorted(list(tables))
-            
-            # Clean up session object (skip for now to avoid errors)
-            # Note: In production, should properly destroy session objects
+
+            # Session object cleanup deferred to prevent connection issues
+            # Session objects are automatically cleaned when connection closes
             print(f"Found {len(fields)} fields across {len(tables_list)} tables")
-            
+
             return {
                 "fields": fields,
                 "field_count": len(fields),
                 "tables": tables_list,
                 "table_count": len(tables_list)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving fields: {e}")
             raise
-    
+
     def get_sheets(
         self,
         include_thumbnail: bool = False,
@@ -489,66 +495,66 @@ class QlikClient:
         """Retrieve all sheets from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Getting sheets using GetAllInfos...")
-            
+
             # Get all objects in the app
             all_infos_result = self._send_request("GetAllInfos", self.app_handle)
-            
+
             if not all_infos_result or "qInfos" not in all_infos_result:
                 raise ValueError("Failed to get app objects")
-            
+
             # Filter for sheets
             all_objects = all_infos_result["qInfos"]
             sheet_infos = [obj for obj in all_objects if obj.get("qType") == "sheet"]
             print(f"Found {len(sheet_infos)} sheets")
-            
+
             sheets = []
-            
+
             # Get detailed information for each sheet
             for sheet_info in sheet_infos:
                 sheet_id = sheet_info.get("qId", "")
                 if not sheet_id:
                     continue
-                
+
                 try:
                     # Get the sheet object to retrieve metadata
                     sheet_obj_result = self._send_request("GetObject", self.app_handle, [sheet_id])
-                    
+
                     if sheet_obj_result and "qReturn" in sheet_obj_result:
                         # Get the handle for the sheet object
                         sheet_handle = sheet_obj_result["qReturn"]["qHandle"]
-                        
+
                         # Get the layout from the sheet handle
                         layout_result = self._send_request("GetLayout", sheet_handle)
-                        
+
                         if layout_result and "qLayout" in layout_result:
                             layout = layout_result["qLayout"]
                             q_meta = layout.get("qMeta", {})
-                            
+
                             sheet_data = {
                                 "sheet_id": sheet_id,
                                 "title": q_meta.get("title", ""),
                                 "description": q_meta.get("description", ""),
                                 "rank": layout.get("rank", 0)
                             }
-                            
+
                             if include_thumbnail:
                                 sheet_data["thumbnail"] = q_meta.get("thumbnail", "")
-                            
+
                             if include_metadata:
                                 sheet_data["created"] = q_meta.get("createdDate", "")
                                 sheet_data["modified"] = q_meta.get("modifiedDate", "")
                                 sheet_data["published"] = q_meta.get("published", False)
                                 sheet_data["approved"] = q_meta.get("approved", False)
-                            
+
                             sheets.append(sheet_data)
                         else:
                             raise ValueError("No layout data returned")
                     else:
                         raise ValueError("GetObject failed")
-                        
+
                 except Exception as e:
                     print(f"Warning: Could not get metadata for sheet {sheet_id}: {e}")
                     # Add basic sheet info even if metadata retrieval fails
@@ -558,21 +564,21 @@ class QlikClient:
                         "description": "",
                         "rank": 0
                     })
-            
+
             # Sort sheets by rank
             sheets.sort(key=lambda x: x.get("rank", 0))
-            
+
             print(f"Successfully retrieved {len(sheets)} sheets")
-            
+
             return {
                 "sheets": sheets,
                 "sheet_count": len(sheets)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving sheets: {e}")
             raise
-    
+
     def get_sheet_objects(
         self,
         sheet_id: str,
@@ -584,7 +590,7 @@ class QlikClient:
         """Retrieve all visualization objects from a specific sheet, including container contents"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             # First get the sheet object itself
             print(f"Getting sheet object: {sheet_id}")
@@ -593,32 +599,32 @@ class QlikClient:
                 self.app_handle,
                 [sheet_id]
             )
-            
+
             # print(f"GetObject result: {sheet_result}")  # Debug output
-            
+
             if not sheet_result or "qReturn" not in sheet_result:
                 raise ValueError(f"Failed to get sheet object: {sheet_id}")
-            
+
             sheet_handle = sheet_result["qReturn"]["qHandle"]
             print(f"Got sheet with handle: {sheet_handle}")
-            
+
             # Get sheet layout
             sheet_layout = self._send_request("GetLayout", sheet_handle)
             sheet_data = sheet_layout.get("qLayout", sheet_layout) if sheet_layout else {}
-            
+
             sheet_title = ""
             if "qMeta" in sheet_data:
                 sheet_title = sheet_data["qMeta"].get("title", "")
-            
+
             # Get child objects (visualizations)
             child_infos = []
             if "qChildList" in sheet_data:
                 child_list = sheet_data["qChildList"]
                 if "qItems" in child_list:
                     child_infos = child_list["qItems"]
-            
+
             print(f"Found {len(child_infos)} child objects")
-            
+
             # Pre-fetch master items if needed for resolution
             master_measures_cache = {}
             master_dimensions_cache = {}
@@ -626,18 +632,18 @@ class QlikClient:
                 print("Pre-fetching master items for resolution...")
                 master_measures_cache = self.get_master_measures_map()
                 master_dimensions_cache = self.get_master_dimensions_map()
-            
+
             # Process each visualization object
             objects = []
             for child_info in child_infos:
                 obj_id = child_info.get("qInfo", {}).get("qId", "")
                 obj_type = child_info.get("qInfo", {}).get("qType", "")
-                
+
                 obj_data = {
                     "object_id": obj_id,
                     "object_type": obj_type
                 }
-                
+
                 # Process ALL objects including containers
                 try:
                     # Get the object
@@ -646,20 +652,20 @@ class QlikClient:
                         self.app_handle,
                         [obj_id]
                     )
-                    
+
                     if obj_result and "qReturn" in obj_result:
                         obj_handle = obj_result["qReturn"]["qHandle"]
-                        
+
                         # Get object layout for detailed info
                         obj_layout = self._send_request("GetLayout", obj_handle)
                         obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
-                        
+
                         # Extract title and subtitle
                         if "title" in obj_layout_data:
                             obj_data["title"] = obj_layout_data["title"]
                         if "subtitle" in obj_layout_data:
                             obj_data["subtitle"] = obj_layout_data["subtitle"]
-                        
+
                         # Extract layout information
                         if include_layout and "qInfo" in obj_layout_data:
                             obj_data["layout"] = {
@@ -668,15 +674,15 @@ class QlikClient:
                                 "width": child_info.get("qData", {}).get("colspan", 0),
                                 "height": child_info.get("qData", {}).get("rowspan", 0)
                             }
-                        
+
                         # Check if this is a VizlibContainer or similar container
                         if obj_type.lower() in ["vizlibcontainer", "container", "qlik-tabbed-container"]:
                             print(f"Processing container object: {obj_id} (type: {obj_type})")
                             obj_data["is_container"] = True
-                            
+
                             # Get effective properties for the container
                             effective_props = self.get_effective_properties(obj_handle)
-                            
+
                             # Process container contents
                             container_objects = self._process_container_contents(
                                 obj_handle,
@@ -689,26 +695,26 @@ class QlikClient:
                                 master_measures_cache,
                                 master_dimensions_cache
                             )
-                            
+
                             if container_objects:
                                 obj_data["embedded_objects"] = container_objects
                                 obj_data["embedded_object_count"] = len(container_objects)
-                            
+
                             # Store container structure if available
                             if effective_props:
                                 obj_data["container_structure"] = self._extract_container_structure(effective_props)
-                        
+
                         # Process regular visualization objects
                         else:
                             # Extract measures and dimensions
                             if include_data_definition:
                                 measures = []
                                 dimensions = []
-                                
+
                                 # Get measures from HyperCubeDef
                                 if "qHyperCubeDef" in obj_layout_data:
                                     hc_def = obj_layout_data["qHyperCubeDef"]
-                                    
+
                                     # Extract measures
                                     if "qMeasures" in hc_def:
                                         for measure in hc_def["qMeasures"]:
@@ -718,7 +724,7 @@ class QlikClient:
                                                 master_measures_cache
                                             )
                                             measures.append(measure_data)
-                                    
+
                                     # Extract dimensions
                                     if "qDimensions" in hc_def:
                                         for dimension in hc_def["qDimensions"]:
@@ -728,45 +734,45 @@ class QlikClient:
                                                 master_dimensions_cache
                                             )
                                             dimensions.append(dimension_data)
-                                
+
                                 if measures:
                                     obj_data["measures"] = measures
                                 if dimensions:
                                     obj_data["dimensions"] = dimensions
-                        
+
                         # Extract properties if requested
                         if include_properties:
                             properties = {}
-                            
+
                             # Extract color settings
                             if "color" in obj_layout_data:
                                 properties["color"] = obj_layout_data["color"]
-                            
+
                             # Extract other visualization-specific properties
                             if "qHyperCubeDef" in obj_layout_data:
                                 hc_def = obj_layout_data["qHyperCubeDef"]
                                 if "qInterColumnSortOrder" in hc_def:
                                     properties["sortOrder"] = hc_def["qInterColumnSortOrder"]
-                            
+
                             if properties:
                                 obj_data["properties"] = properties
-                
+
                 except Exception as e:
                     print(f"Warning: Could not get details for object {obj_id}: {e}")
                     # Continue with basic info
-                
+
                 objects.append(obj_data)
-            
+
             return {
                 "sheet_title": sheet_title,
                 "objects": objects,
                 "object_count": len(objects)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving sheet objects: {e}")
             raise
-    
+
     def _process_container_contents(
         self,
         container_handle: int,
@@ -781,19 +787,19 @@ class QlikClient:
     ) -> List[Dict[str, Any]]:
         """Process and extract embedded objects from a container"""
         embedded_objects = []
-        
+
         try:
             # Try to extract tabs/panels structure from effective properties
             tabs = []
             vizlib_container_objects = []
-            
+
             if effective_props:
                 # Check for VizlibContainer specific structure
                 if "qProp" in effective_props:
                     qprop = effective_props.get("qProp", {})
                     if "containerObjects" in qprop:
                         vizlib_container_objects = qprop.get("containerObjects", [])
-                
+
                 # Look for common container structures
                 if not vizlib_container_objects:
                     if "tabs" in effective_props:
@@ -810,20 +816,20 @@ class QlikClient:
                         props = effective_props.get("props", {})
                         if "tabs" in props:
                             tabs = props.get("tabs", [])
-            
+
             # Process VizlibContainer objects if found
             if vizlib_container_objects:
                 print(f"Found {len(vizlib_container_objects)} VizlibContainer tabs in container {container_id}")
                 for tab_idx, container_obj in enumerate(vizlib_container_objects):
                     tab_label = container_obj.get("label", f"Tab_{tab_idx + 1}")
                     tab_id = container_obj.get("cId", f"{container_id}_tab_{tab_idx + 1}")
-                    
+
                     print(f"Processing VizlibContainer tab: {tab_label}")
-                    
+
                     # Extract master items from gridView
                     grid_view = container_obj.get("gridView", {})
                     master_items = grid_view.get("masterItems", [])
-                    
+
                     for master_item in master_items:
                         master_item_id = master_item.get("masterItemId")
                         if master_item_id:
@@ -839,7 +845,7 @@ class QlikClient:
                                     obj_handle = obj_result["qReturn"]["qHandle"]
                                     if obj_handle:
                                         obj_layout = self._send_request("GetLayout", obj_handle)
-                                        
+
                                         embedded_obj = self._create_object_from_layout(
                                             master_item_id,
                                             obj_layout,
@@ -861,15 +867,15 @@ class QlikClient:
                                 print(f"Could not get master item {master_item_id}: {e}")
             else:
                 print(f"Found {len(tabs)} tabs/panels in container {container_id}")
-            
+
             # Process each tab/panel
             for tab_idx, tab in enumerate(tabs):
                 tab_objects = []
-                
+
                 # Extract tab metadata
                 tab_label = tab.get("label", f"Tab_{tab_idx + 1}")
                 tab_id = tab.get("id", f"{container_id}_tab_{tab_idx + 1}")
-                
+
                 # Look for embedded objects in the tab
                 if "objects" in tab:
                     for obj in tab.get("objects", []):
@@ -886,7 +892,7 @@ class QlikClient:
                         )
                         if embedded_obj:
                             tab_objects.append(embedded_obj)
-                
+
                 # Also check for object references
                 elif "objectId" in tab or "qObjectId" in tab:
                     obj_id = tab.get("objectId") or tab.get("qObjectId")
@@ -901,7 +907,7 @@ class QlikClient:
                             if obj_result and "qReturn" in obj_result:
                                 obj_handle = obj_result["qReturn"]["qHandle"]
                                 obj_layout = self._send_request("GetLayout", obj_handle)
-                                
+
                                 embedded_obj = self._create_object_from_layout(
                                     obj_id,
                                     obj_layout,
@@ -918,13 +924,13 @@ class QlikClient:
                                     tab_objects.append(embedded_obj)
                         except Exception as e:
                             print(f"Could not get embedded object {obj_id}: {e}")
-                
+
                 # Add tab objects to main list
                 for obj in tab_objects:
                     obj["container_tab"] = tab_label
                     obj["container_tab_id"] = tab_id
                     embedded_objects.append(obj)
-            
+
             # If no tabs structure found, try to get child objects directly
             if not tabs and container_handle:
                 try:
@@ -943,7 +949,7 @@ class QlikClient:
                                     if obj_result and "qReturn" in obj_result:
                                         obj_handle = obj_result["qReturn"]["qHandle"]
                                         obj_layout = self._send_request("GetLayout", obj_handle)
-                                        
+
                                         embedded_obj = self._create_object_from_layout(
                                             child_id,
                                             obj_layout,
@@ -961,16 +967,16 @@ class QlikClient:
                                             embedded_objects.append(embedded_obj)
                                 except Exception as e:
                                     print(f"Could not process child object {child_id}: {e}")
-                except:
+                except Exception:
                     pass  # GetChildInfos might not be available
-            
+
             print(f"Extracted {len(embedded_objects)} embedded objects from container {container_id}")
-            
+
         except Exception as e:
             print(f"Error processing container contents: {e}")
-        
+
         return embedded_objects
-    
+
     def _process_embedded_object(
         self,
         obj_data: Dict[str, Any],
@@ -987,17 +993,17 @@ class QlikClient:
         try:
             obj_id = obj_data.get("id") or obj_data.get("qId", "")
             obj_type = obj_data.get("type") or obj_data.get("qType", "")
-            
+
             if not obj_id:
                 return None
-            
+
             embedded_obj = {
                 "object_id": obj_id,
                 "object_type": obj_type,
                 "parent_container": container_id,
                 "is_embedded": True
             }
-            
+
             # Try to get more details about the object
             try:
                 obj_result = self._send_request(
@@ -1008,7 +1014,7 @@ class QlikClient:
                 if obj_result and "qReturn" in obj_result:
                     obj_handle = obj_result["qReturn"]["qHandle"]
                     obj_layout = self._send_request("GetLayout", obj_handle)
-                    
+
                     return self._create_object_from_layout(
                         obj_id,
                         obj_layout,
@@ -1021,15 +1027,15 @@ class QlikClient:
                         master_measures_cache,
                         master_dimensions_cache
                     )
-            except:
+            except Exception:
                 pass  # Continue with basic info if detailed fetch fails
-            
+
             return embedded_obj
-            
+
         except Exception as e:
             print(f"Error processing embedded object: {e}")
             return None
-    
+
     def _create_object_from_layout(
         self,
         obj_id: str,
@@ -1045,28 +1051,28 @@ class QlikClient:
     ) -> Dict[str, Any]:
         """Create object data from layout information"""
         obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
-        
+
         obj = {
             "object_id": obj_id,
             "object_type": obj_layout_data.get("qInfo", {}).get("qType", ""),
             "parent_container": container_id,
             "is_embedded": True
         }
-        
+
         # Extract title and subtitle
         if "title" in obj_layout_data:
             obj["title"] = obj_layout_data["title"]
         if "subtitle" in obj_layout_data:
             obj["subtitle"] = obj_layout_data["subtitle"]
-        
+
         # Extract measures and dimensions if requested
         if include_data_definition:
             measures = []
             dimensions = []
-            
+
             if "qHyperCubeDef" in obj_layout_data:
                 hc_def = obj_layout_data["qHyperCubeDef"]
-                
+
                 # Extract measures
                 if "qMeasures" in hc_def:
                     for measure in hc_def["qMeasures"]:
@@ -1076,7 +1082,7 @@ class QlikClient:
                             master_measures_cache
                         )
                         measures.append(measure_data)
-                
+
                 # Extract dimensions
                 if "qDimensions" in hc_def:
                     for dimension in hc_def["qDimensions"]:
@@ -1086,12 +1092,12 @@ class QlikClient:
                             master_dimensions_cache
                         )
                         dimensions.append(dimension_data)
-            
+
             if measures:
                 obj["measures"] = measures
             if dimensions:
                 obj["dimensions"] = dimensions
-        
+
         # Extract properties if requested
         if include_properties:
             properties = {}
@@ -1099,19 +1105,19 @@ class QlikClient:
                 properties["color"] = obj_layout_data["color"]
             if properties:
                 obj["properties"] = properties
-        
+
         return obj
-    
+
     def _extract_container_structure(self, effective_props: Dict[str, Any]) -> Dict[str, Any]:
         """Extract and simplify container structure from effective properties"""
         structure = {
             "type": "container",
             "tabs": []
         }
-        
+
         try:
             tabs = []
-            
+
             # Check for VizlibContainer specific structure
             if "qProp" in effective_props:
                 qprop = effective_props.get("qProp", {})
@@ -1124,10 +1130,14 @@ class QlikClient:
                             "label": container_obj.get("label", ""),
                             "id": container_obj.get("cId", ""),
                             "object_count": len(master_items),
-                            "master_items": [item.get("masterItemId") for item in master_items if item.get("masterItemId")]
+                            "master_items": [
+                                item.get("masterItemId")
+                                for item in master_items
+                                if item.get("masterItemId")
+                            ]
                         }
                         structure["tabs"].append(tab_info)
-            
+
             # If no VizlibContainer structure, look for standard tabs/panels
             if not structure["tabs"]:
                 if "tabs" in effective_props:
@@ -1140,7 +1150,7 @@ class QlikClient:
                         tabs = prop.get("tabs", [])
                     elif "panels" in prop:
                         tabs = prop.get("panels", [])
-                
+
                 for tab in tabs:
                     tab_info = {
                         "label": tab.get("label", ""),
@@ -1148,14 +1158,14 @@ class QlikClient:
                         "object_count": len(tab.get("objects", []))
                     }
                     structure["tabs"].append(tab_info)
-            
+
             structure["tab_count"] = len(structure["tabs"])
-            
+
         except Exception as e:
             print(f"Error extracting container structure: {e}")
-        
+
         return structure
-    
+
     def _process_measure(
         self,
         measure: Dict[str, Any],
@@ -1165,12 +1175,12 @@ class QlikClient:
         """Process a measure definition, resolving master items if needed"""
         measure_def = measure.get("qDef", {})
         library_id = measure.get("qLibraryId", "")
-        
+
         measure_data = {
             "label": measure_def.get("qLabel", ""),
             "expression": measure_def.get("qDef", "")
         }
-        
+
         # Check if this is a master measure reference
         if library_id and resolve_master_items:
             resolution = self.resolve_master_item_reference(
@@ -1188,9 +1198,9 @@ class QlikClient:
                     measure_data["label"] = master_item.get("label", "") or master_item.get("title", "")
                 if not measure_data["expression"]:
                     measure_data["expression"] = master_item.get("expression", "")
-        
+
         return measure_data
-    
+
     def _process_dimension(
         self,
         dimension: Dict[str, Any],
@@ -1200,12 +1210,12 @@ class QlikClient:
         """Process a dimension definition, resolving master items if needed"""
         dim_def = dimension.get("qDef", {})
         library_id = dimension.get("qLibraryId", "")
-        
+
         dimension_data = {
             "label": dim_def.get("qLabel", ""),
             "field": dim_def.get("qFieldDefs", [""])[0] if dim_def.get("qFieldDefs") else ""
         }
-        
+
         # Check if this is a master dimension reference
         if library_id and resolve_master_items:
             resolution = self.resolve_master_item_reference(
@@ -1225,31 +1235,31 @@ class QlikClient:
                         dimension_data["label"] = labels[0]
                 if not dimension_data["field"] and master_item.get("field_definitions"):
                     dimension_data["field"] = master_item["field_definitions"][0]
-        
+
         return dimension_data
-    
+
     def get_effective_properties(self, object_handle: int) -> Dict[str, Any]:
         """Get effective properties of an object (especially useful for containers)"""
         if not self.ws:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             result = self._send_request("GetEffectiveProperties", object_handle)
             return result if result else {}
         except Exception as e:
             print(f"Error getting effective properties: {e}")
             return {}
-    
+
     def get_master_measures_map(self) -> Dict[str, Dict[str, Any]]:
         """Get all master measures and return as a map keyed by ID"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Fetching master measures for reference resolution...")
             measures_result = self.get_measures(include_expression=True, include_tags=False)
             measures_map = {}
-            
+
             for measure in measures_result.get("measures", []):
                 measure_id = measure.get("id")
                 if measure_id:
@@ -1259,19 +1269,19 @@ class QlikClient:
                         "title": measure.get("title", ""),
                         "description": measure.get("description", "")
                     }
-            
+
             print(f"Cached {len(measures_map)} master measures")
             return measures_map
-            
+
         except Exception as e:
             print(f"Error fetching master measures map: {e}")
             return {}
-    
+
     def get_master_dimensions_map(self) -> Dict[str, Dict[str, Any]]:
         """Get all master dimensions and return as a map keyed by ID"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Fetching master dimensions for reference resolution...")
             dimensions_result = self.get_dimensions(
@@ -1281,7 +1291,7 @@ class QlikClient:
                 include_info=True
             )
             dimensions_map = {}
-            
+
             for dimension in dimensions_result.get("dimensions", []):
                 dimension_id = dimension.get("id")
                 if dimension_id:
@@ -1289,7 +1299,7 @@ class QlikClient:
                     dim_info = dimension.get("info", [])
                     field_defs = []
                     labels = []
-                    
+
                     for info_item in dim_info:
                         if isinstance(info_item, dict):
                             field_def = info_item.get("qFieldDefs", [])
@@ -1298,67 +1308,67 @@ class QlikClient:
                             label = info_item.get("qLabel", "")
                             if label:
                                 labels.append(label)
-                    
+
                     dimensions_map[dimension_id] = {
                         "field_definitions": field_defs,
                         "labels": labels,
                         "title": dimension.get("title", ""),
                         "grouping": dimension.get("grouping", "")
                     }
-            
+
             print(f"Cached {len(dimensions_map)} master dimensions")
             return dimensions_map
-            
+
         except Exception as e:
             print(f"Error fetching master dimensions map: {e}")
             return {}
-    
+
     def resolve_master_item_reference(
-        self, 
+        self,
         library_id: str,
         item_type: str,
         master_items_cache: Dict[str, Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Resolve a master item reference to its full definition
-        
+
         Args:
             library_id: The qLibraryId reference
             item_type: Either 'measure' or 'dimension'
             master_items_cache: Optional pre-fetched cache of master items
-        
+
         Returns:
             Dictionary with resolved expression/field definitions
         """
         if not library_id:
             return {}
-        
+
         try:
             if item_type == "measure":
                 if master_items_cache is None:
                     master_items_cache = self.get_master_measures_map()
-                
+
                 if library_id in master_items_cache:
                     return {
                         "resolved": True,
                         "master_item": master_items_cache[library_id]
                     }
-                    
+
             elif item_type == "dimension":
                 if master_items_cache is None:
                     master_items_cache = self.get_master_dimensions_map()
-                
+
                 if library_id in master_items_cache:
                     return {
                         "resolved": True,
                         "master_item": master_items_cache[library_id]
                     }
-            
+
             return {"resolved": False, "reason": "Master item not found"}
-            
+
         except Exception as e:
             print(f"Error resolving master item {library_id}: {e}")
             return {"resolved": False, "reason": str(e)}
-    
+
     def get_dimensions(
         self,
         include_title: bool = True,
@@ -1369,25 +1379,25 @@ class QlikClient:
         """Retrieve all dimensions from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Creating DimensionList session object...")
-            
+
             # Build qData paths based on options
             q_data = {}
-            
+
             if include_title:
                 q_data["title"] = "/title"
-            
+
             if include_tags:
                 q_data["tags"] = "/tags"
-            
+
             if include_grouping:
                 q_data["grouping"] = "/qDim/qGrouping"
-            
+
             if include_info:
                 q_data["info"] = "/qDimInfos"
-            
+
             create_params = [
                 {
                     "qInfo": {
@@ -1399,24 +1409,24 @@ class QlikClient:
                     }
                 }
             ]
-            
+
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
                 create_params
             )
-            
+
             if not create_result or "qReturn" not in create_result:
                 raise ValueError("Failed to create DimensionList object")
-            
+
             dimension_list_handle = create_result["qReturn"]["qHandle"]
             print(f"Created DimensionList with handle: {dimension_list_handle}")
-            
+
             # Get layout containing dimension data
             layout = self._send_request("GetLayout", dimension_list_handle)
             # The actual data is nested under qLayout
             actual_layout = layout.get("qLayout", layout) if layout else {}
-            
+
             # Extract dimensions from layout
             dimensions = []
             if actual_layout and "qDimensionList" in actual_layout:
@@ -1427,74 +1437,74 @@ class QlikClient:
                     q_data = item.get("qData", {})
                     q_info = item.get("qInfo", {})
                     q_meta = item.get("qMeta", {})
-                    
+
                     dimension = {
                         "dimension_id": q_info.get("qId", ""),
                         "name": q_meta.get("title", q_info.get("qId", ""))
                     }
-                    
+
                     if include_title:
                         dimension["title"] = q_data.get("title", q_meta.get("title", ""))
-                    
+
                     if include_tags:
                         dimension["tags"] = q_data.get("tags", [])
-                    
+
                     if include_grouping:
                         dimension["grouping"] = q_data.get("grouping", "N")
-                    
+
                     if include_info:
                         dimension["info"] = q_data.get("info", [])
-                    
+
                     # Add additional metadata from qMeta
                     dimension["description"] = q_meta.get("description", "")
                     dimension["created"] = q_meta.get("createdDate", "")
                     dimension["modified"] = q_meta.get("modifiedDate", "")
                     dimension["published"] = q_meta.get("published", False)
                     dimension["approved"] = q_meta.get("approved", False)
-                    
+
                     dimensions.append(dimension)
-            
-            # Clean up session object (skip for now to avoid errors)
-            # Note: In production, should properly destroy session objects
+
+            # Session object cleanup deferred to prevent connection issues
+            # Session objects are automatically cleaned when connection closes
             print(f"Found {len(dimensions)} dimensions")
-            
+
             return {
                 "dimensions": dimensions,
                 "dimension_count": len(dimensions)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving dimensions: {e}")
             raise
-    
+
     def get_script(self) -> Dict[str, Any]:
         """Retrieve the script from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Getting app script...")
-            
+
             # Call GetScript method on the app handle
             script_result = self._send_request("GetScript", self.app_handle)
-            
+
             if not script_result:
                 raise ValueError("Failed to get app script")
-            
+
             print("Successfully retrieved app script")
-            
+
             # The script content is typically in qScript
             script_content = script_result.get("qScript", "")
-            
+
             return {
                 "script": script_content,
                 "script_length": len(script_content)
             }
-            
+
         except Exception as e:
             print(f"Error retrieving script: {e}")
             raise
-    
+
     def get_lineage(
         self,
         include_resident: bool = True,
@@ -1505,21 +1515,21 @@ class QlikClient:
         """Retrieve data sources lineage from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
-        
+
         try:
             print("Getting app data sources lineage...")
-            
+
             # Call GetLineage method on the app handle (no parameters needed)
             lineage_result = self._send_request("GetLineage", self.app_handle)
-            
+
             if not lineage_result:
                 raise ValueError("Failed to get app lineage")
-            
+
             print("Successfully retrieved app lineage")
-            
+
             # The lineage data is in qLineage
             lineage_data = lineage_result.get("qLineage", [])
-            
+
             # Process and categorize the data sources
             data_sources = []
             categories = {
@@ -1529,18 +1539,18 @@ class QlikClient:
                 "inline": [],
                 "other": []
             }
-            
+
             for item in lineage_data:
                 discriminator = item.get("qDiscriminator", "")
                 statement = item.get("qStatement", "")
-                
+
                 # Create data source object
                 source = {
                     "discriminator": discriminator,
                     "statement": statement if statement else None,
                     "type": self._categorize_data_source(discriminator, statement)
                 }
-                
+
                 # Apply filters based on include options
                 source_type = source["type"]
                 if (source_type == "binary" and include_binary_sources) or \
@@ -1548,12 +1558,12 @@ class QlikClient:
                    (source_type == "file" and include_file_sources) or \
                    (source_type == "inline" and include_inline_sources) or \
                    (source_type == "other"):
-                    
+
                     data_sources.append(source)
                     categories[source_type].append(source)
-            
+
             print(f"Found {len(data_sources)} data sources")
-            
+
             return {
                 "data_sources": data_sources,
                 "source_count": len(data_sources),
@@ -1566,43 +1576,43 @@ class QlikClient:
                 },
                 "by_category": categories
             }
-            
+
         except Exception as e:
             print(f"Error retrieving lineage: {e}")
             raise
-    
+
     def _categorize_data_source(self, discriminator: str, statement: str = None) -> str:
         """Categorize data source based on discriminator and statement"""
         discriminator_lower = discriminator.lower()
-        
+
         # Check for binary sources
         if statement and statement.lower() == "binary":
             return "binary"
-        
+
         # Check for resident sources
         if discriminator_lower.startswith("resident "):
             return "resident"
-        
+
         # Check for inline sources
         if discriminator_lower.startswith("inline"):
             return "inline"
-        
+
         # Check for file sources (paths, URLs, etc.)
         if any(indicator in discriminator_lower for indicator in [
             "\\", "/", ".", "lib://", "http://", "https://", "ftp://", ".txt", ".csv", ".xlsx", ".qvd"
         ]):
             return "file"
-        
+
         # Everything else
         return "other"
-    
+
     def _send_request(self, method: str, handle: int = -1, params: Optional[Any] = None) -> Dict[str, Any]:
         """Send JSON-RPC request and wait for response"""
         if not self.ws:
             raise ConnectionError("WebSocket is not connected")
-        
+
         self.request_id += 1
-        
+
         # Handle params based on method type
         if method == "CreateSessionObject" and isinstance(params, list):
             # CreateSessionObject expects array params
@@ -1639,29 +1649,29 @@ class QlikClient:
                 "handle": handle,
                 "params": params if params is not None else {}
             }
-        
+
         # Send request
         request_json = json.dumps(request)
         self.ws.send(request_json)
-        
+
         # Set receive timeout
         if hasattr(self.ws, 'sock') and self.ws.sock:
             self.ws.sock.settimeout(self.recv_timeout)
-        
+
         # Wait for response
         while True:
             response_str = self.ws.recv()
             response = json.loads(response_str)
-            
+
             # Skip connection messages
             if response.get("method") == "OnConnected":
                 continue
-            
+
             # Check for errors
             if "error" in response:
                 error = response["error"]
                 raise Exception(f"Engine API Error: {error.get('message', 'Unknown error')}")
-            
+
             # Check if this is our response
             if response.get("id") == self.request_id:
                 return response.get("result", {})
@@ -1670,29 +1680,29 @@ class QlikClient:
 def test_connection():
     """Test function to verify Qlik connection and measure retrieval"""
     client = QlikClient()
-    
+
     # Test with a sample app ID (replace with actual app ID)
     test_app_id = "12345678-abcd-1234-efgh-123456789abc"
-    
+
     try:
         if client.connect(test_app_id):
             print("\n✅ Connection successful!")
-            
+
             # Get measures
             result = client.get_measures(include_expression=True, include_tags=True)
-            
+
             print(f"\n📊 Found {result['count']} measures:")
             for measure in result['measures'][:5]:  # Show first 5
                 print(f"  - {measure['title']} (ID: {measure['id']})")
                 if measure.get('expression'):
                     print(f"    Expression: {measure['expression'][:50]}...")
-            
+
             client.disconnect()
             return True
         else:
             print("❌ Connection failed")
             return False
-            
+
     except Exception as e:
         print(f"❌ Test failed: {e}")
         client.disconnect()

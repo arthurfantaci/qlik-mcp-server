@@ -11,8 +11,7 @@ sys.path.insert(0, project_dir)
 # Change to the project directory to ensure relative paths work
 os.chdir(project_dir)
 
-# Now run the server
-from src.server import main
+from src.server import main  # noqa: E402
 
 if __name__ == "__main__":
     main()

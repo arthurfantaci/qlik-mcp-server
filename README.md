@@ -256,46 +256,55 @@ Parameters used:
 Once configured, you can use natural language to access all tools:
 
 **🔍 Explore Applications:**
+
 ```text
 "Show me all available Qlik Sense applications"
 ```
 
 **📊 Analyze Measures:**
+
 ```text
 "Get all measures from Qlik app 12345678-abcd-1234-efgh-123456789abc with expressions and tags"
 ```
 
 **🔧 Review Variables:**
+
 ```text
 "Show me all variables in the application including their definitions"
 ```
 
 **📊 Examine Data Model:**
+
 ```text
 "Get all fields and table information to understand the data model structure"
 ```
 
 **📄 Review Sheets:**
+
 ```text
 "List all sheets in the application with their metadata"
 ```
 
 **🎨 Analyze Visualizations:**
+
 ```text
 "Get all visualization objects from sheet 'Overview' with their properties and layout"
 ```
 
 **📐 Study Dimensions:**
+
 ```text
 "Show me all dimensions with their grouping and metadata information"
 ```
 
 **📜 Review Data Loading:**
+
 ```text
 "Get the complete data loading script for this application"
 ```
 
 **🔗 Understand Data Sources:**
+
 ```text
 "Show me all data sources and their lineage, including binary and file sources"
 ```
@@ -744,7 +753,7 @@ qlik-mcp-server/
 ├── tests/                  # Test suite
 │   ├── test_qlik_connection.py    # Test basic connection
 │   ├── test_list_apps.py          # Test application listing
-│   ├── test_measures.py           # Test measure retrieval
+│   ├── test_mcp_tool.py            # Test MCP tool functions (includes measures)
 │   ├── test_variables.py          # Test variable retrieval
 │   ├── test_fields.py             # Test field retrieval
 │   ├── test_sheets.py             # Test sheet retrieval
@@ -837,7 +846,7 @@ The server provides 9 comprehensive tools for complete Qlik Sense analysis. See 
 
 ## Limitations
 
-This is a lightweight pilot implementation with intentional limitations:
+Current implementation considerations:
 
 - Single app connection at a time
 - No retry logic for failed connections
@@ -872,11 +881,11 @@ Potential improvements for production use:
 
 ## License
 
-This is a pilot project for individual use. Ensure compliance with your organization's Qlik Sense licensing terms.
+This project is licensed under MIT. Ensure compliance with your organization's Qlik Sense licensing terms.
 
 ## Support
 
-This is a lightweight pilot implementation. For issues:
+For technical support:
 
 1. Check the troubleshooting section
 2. Verify Qlik server connectivity

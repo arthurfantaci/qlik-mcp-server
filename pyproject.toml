@@ -41,5 +41,25 @@ qlik-mcp-server = "src.server:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = [
+    "ruff>=0.13.2",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+]
+ignore = [
+    "E402",   # Module level import not at top of file (needed for sys.path modifications)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["E402"]  # Allow imports after sys.path modification in tests
+"start_server.py" = ["E402"]  # Allow imports after sys.path modification
