@@ -44,13 +44,23 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 - **Migration Analysis**: Assess complexity before Qlik app migrations or upgrades
 - **Governance Auditing**: Review variables, scripts, and data sources for compliance
 
+## 🛠️ Modern Development Stack
+
+This project uses industry-standard tools for reliability and maintainability:
+
+- **🚀 UV**: Fast, reliable Python package management and virtual environment handling
+- **🧹 Ruff**: Lightning-fast Python linter and formatter with automated code quality
+- **🧪 Pytest**: Professional testing framework with unit/integration test separation
+- **🤖 GitHub Actions**: Automated CI/CD with matrix testing across Python versions
+- **📦 FastMCP**: Modern MCP server framework with Pydantic validation
+
 ## Prerequisites
 
 - **Python 3.10+** (required for FastMCP)
+- **UV package manager** (strongly recommended - handles everything automatically)
 - Access to Qlik Sense Enterprise server
 - Valid Qlik client certificates (see [Certificate Setup Guide](docs/CERTIFICATES.md))
 - MCP-compatible client (e.g., Cursor IDE, VS Code, Claude Desktop)
-- **UV** package manager (recommended) or pip
 
 ## Quick Start
 
@@ -61,13 +71,12 @@ A comprehensive MCP (Model Context Protocol) server that provides complete acces
 git clone https://github.com/arthurfantaci/qlik-mcp-server.git
 cd qlik-mcp-server
 
-# Option A: Install with UV (recommended)
+# Install with UV (strongly recommended)
 curl -LsSf https://astral.sh/uv/install.sh | sh  # Install UV if not already installed
-uv sync  # Creates virtual environment and installs dependencies
-
-# Option B: Install with pip (legacy)
-pip install -e .
+uv sync  # Creates virtual environment and installs all dependencies automatically
 ```
+
+> **Why UV?** UV provides faster, more reliable dependency management with automatic virtual environment handling, lockfile generation for reproducible builds, and seamless integration with modern Python development workflows.
 
 ### 2. Configuration
 
@@ -95,13 +104,17 @@ certs/
 ### 4. Test Connection
 
 ```bash
-# With UV (recommended)
-uv run python tests/test_qlik_connection.py
-uv run python tests/test_list_apps.py
+# Test basic Qlik connection
+uv run pytest tests/test_qlik_connection.py -v
 
-# With pip
-python tests/test_qlik_connection.py
-python tests/test_list_apps.py
+# Test application listing
+uv run pytest tests/test_list_apps.py -v
+
+# Run all unit tests (no Qlik server required)
+uv run pytest -m unit
+
+# Run integration tests (requires Qlik server)
+uv run pytest -m integration
 ```
 
 ### 5. Configure with Cursor IDE
@@ -745,14 +758,18 @@ The data sources tool will return:
 
 ```text
 qlik-mcp-server/
+├── .github/workflows/      # CI/CD automation
+│   └── test.yml           # GitHub Actions test pipeline
 ├── .claude/                # Claude Code configuration
-│   └── settings.local.json        # Local Claude settings
+│   └── settings.local.json # Local Claude settings
 ├── src/                    # Core application code
 │   ├── __init__.py         # Package initialization
 │   ├── server.py           # FastMCP server implementation
 │   ├── qlik_client.py      # Qlik Engine API WebSocket client
 │   └── tools.py            # MCP tool definitions and implementations
-├── tests/                  # Test suite
+├── tests/                  # Comprehensive test suite (pytest)
+│   ├── conftest.py         # Pytest configuration and fixtures
+│   ├── README.md           # Testing documentation and guidelines
 │   ├── test_qlik_connection.py    # Test basic connection
 │   ├── test_list_apps.py          # Test application listing
 │   ├── test_mcp_tool.py           # Test MCP tool functions (includes measures)
@@ -780,10 +797,12 @@ qlik-mcp-server/
 │   ├── client.pem         # Client certificate
 │   └── client_key.pem     # Client private key
 ├── .env.example           # Example environment configuration
+├── .env.test.example      # Test environment configuration template
 ├── .env                   # Environment configuration (gitignored)
 ├── .gitignore            # Git ignore rules
 ├── pyproject.toml         # Python project configuration and dependencies
-├── uv.lock               # UV lockfile (gitignored)
+├── pytest.ini            # Pytest configuration and markers
+├── uv.lock               # UV dependency lockfile for reproducible builds
 ├── start_server.py       # Server startup script
 ├── CLAUDE.md             # Claude Code instructions
 ├── CONTRIBUTING.md       # Contribution guidelines
@@ -817,20 +836,20 @@ qlik-mcp-server/
 
 ### Running Tests
 
-The project uses pytest for comprehensive testing with support for both unit and integration tests.
+The project uses **pytest** exclusively for professional-grade testing with clear separation between unit and integration tests.
 
 #### Setup Test Environment
 
 ```bash
-# Install test dependencies
+# Install test dependencies (automatically handled by UV)
 uv sync  # Installs both main and dev dependencies including pytest
 
-# Configure test environment
+# Configure test environment for integration tests
 cp .env.test.example .env.test
 # Edit .env.test with your Qlik server details (when available)
 ```
 
-#### Running Tests with Pytest
+#### Pytest Testing Commands
 
 ```bash
 # Run all tests
@@ -839,10 +858,10 @@ uv run pytest
 # Run with verbose output
 uv run pytest -v
 
-# Run only unit tests (no Qlik server required)
+# Run only unit tests (no Qlik server required - perfect for development)
 uv run pytest -m unit
 
-# Run integration tests (requires Qlik server)
+# Run integration tests (requires Qlik server connection)
 uv run pytest -m integration
 
 # Run with coverage report
@@ -851,36 +870,78 @@ uv run pytest --cov=src --cov-report=html
 # Run specific test file
 uv run pytest tests/test_mcp_tool.py
 
-# Run specific test
+# Run specific test function
 uv run pytest tests/test_mcp_tool.py::test_get_app_measures_mock
 ```
 
-#### Legacy Test Commands (for individual file execution)
+#### Test Categories
+
+The test suite uses pytest markers for clear organization:
+
+- **`@pytest.mark.unit`**: Fast tests that don't require external dependencies
+- **`@pytest.mark.integration`**: Tests requiring live Qlik Sense server connection
+- **`@pytest.mark.slow`**: Long-running tests (can be excluded with `-m "not slow"`)
+
+> **Pro Tip**: Use `uv run pytest -m unit` during development for fast feedback loops, then run integration tests when you have Qlik server access.
+
+#### Test Specific Functionality
 
 ```bash
-# Test basic Qlik connection
-python tests/test_qlik_connection.py
+# Test specific components with pytest
+uv run pytest tests/test_mcp_tool.py -v           # MCP tool functions (includes measures)
+uv run pytest tests/test_variables.py -v          # Variable retrieval
+uv run pytest tests/test_fields.py -v             # Field and table information
+uv run pytest tests/test_sheets.py -v             # Sheet metadata
+uv run pytest tests/test_dimensions.py -v         # Dimension analysis
+uv run pytest tests/test_script.py -v             # Script retrieval and analysis
+uv run pytest tests/test_data_sources.py -v       # Data source lineage
+uv run pytest tests/test_binary_extraction.py -v  # BINARY LOAD extraction
+uv run pytest tests/test_vizlib_container.py -v   # VizlibContainer functionality
+uv run pytest tests/test_both_tools.py -v         # Multiple tools together
 
-# Test individual tools
-python tests/test_list_apps.py          # Application listing
-python tests/test_mcp_tool.py           # MCP tool functions (includes measures)
-python tests/test_variables.py          # Variable retrieval
-python tests/test_fields.py             # Field and table information
-python tests/test_sheets.py             # Sheet metadata
-python tests/test_dimensions.py         # Dimension analysis
-python tests/test_script.py             # Script retrieval and analysis
-python tests/test_data_sources.py       # Data source lineage
-python tests/test_binary_extraction.py  # BINARY LOAD extraction
-python tests/test_vizlib_container.py   # VizlibContainer functionality
-
-# Test MCP functionality
-python tests/test_both_tools.py         # Multiple tools together
-
-# Test Qlik client directly
-python -m src.qlik_client
+# Debug Qlik client directly
+uv run python -m src.qlik_client
 ```
 
 See [tests/README.md](tests/README.md) for comprehensive testing documentation.
+
+### Code Quality & Formatting
+
+The project maintains high code quality standards with automated tooling:
+
+```bash
+# Run Ruff linting and formatting
+uv run ruff check                    # Check for style and quality issues
+uv run ruff check --fix              # Auto-fix issues where possible
+uv run ruff format                   # Format code according to standards
+
+# The project is configured with:
+# - pyproject.toml: Ruff configuration for consistent code style
+# - Automatic import sorting and code formatting
+# - Integration with development workflow
+```
+
+### Continuous Integration (CI/CD)
+
+The project includes a comprehensive GitHub Actions workflow (`.github/workflows/test.yml`) that automatically:
+
+**🔄 Automated Testing**:
+- Runs on every push to `main` and `develop` branches
+- Executes on all pull requests
+- Matrix testing across multiple Python versions (3.10, 3.11, 3.12, 3.13)
+- Separate unit test and integration test execution
+
+**🛠️ Quality Assurance**:
+- UV dependency management and caching
+- Ruff linting and formatting verification
+- Pytest execution with coverage reporting
+- Test result reporting and failure notifications
+
+**🚀 Manual Triggers**:
+- Workflow can be manually triggered via GitHub Actions UI
+- Optional integration test execution (when Qlik server access is available)
+
+The CI/CD pipeline ensures code quality and prevents regressions, making the project reliable for production use.
 
 ### Adding New Tools
 
@@ -908,15 +969,24 @@ Current implementation considerations:
 
 ## Future Enhancements
 
-Potential improvements for production use:
+The project has achieved a modern, production-ready foundation. Potential enhancements:
 
-- Add tools for other Qlik objects
-- Implement connection pooling
-- Add comprehensive error handling and retry logic
-- Cache frequently accessed data
-- Support for multiple concurrent app connections
-- Detailed logging and monitoring
-- WebSocket reconnection handling
+**📈 Scalability & Performance**:
+- Connection pooling for multiple concurrent app connections
+- Intelligent caching of frequently accessed data
+- WebSocket reconnection handling with retry logic
+
+**🔧 Additional Functionality**:
+- Tools for additional Qlik objects (bookmarks, stories, etc.)
+- Advanced filtering and pagination for large datasets
+- Bulk operations for enterprise-scale deployments
+
+**🔍 Observability & Monitoring**:
+- Structured logging with configurable levels
+- Performance metrics and monitoring endpoints
+- Distributed tracing for complex operations
+
+> **Note**: The core development infrastructure (UV, Ruff, Pytest, GitHub Actions) is already enterprise-ready, providing a solid foundation for these future enhancements.
 
 ## Recent Enhancements
 
