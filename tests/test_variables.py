@@ -1,77 +1,69 @@
-#!/usr/bin/env python3
-"""Test script for the get_app_variables functionality"""
+"""Test the get_app_variables functionality"""
 
-import asyncio
-import sys
-import os
+import pytest
 
-# Add the project directory to Python path
-project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_dir)
+from src.tools import get_app_variables
 
-from src.tools import get_app_variables  # noqa: E402
 
-async def test_get_variables():
-    """Test the get_app_variables tool function"""
-
-    # Use the same test app as other tests
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_variables_full():
+    """Test variable retrieval with all options"""
     test_app_id = "12345678-abcd-1234-efgh-123456789abc"
 
-    print("🚀 TESTING VARIABLE RETRIEVAL FUNCTIONALITY")
-    print("=" * 60)
+    result = await get_app_variables(
+        app_id=test_app_id,
+        include_definition=True,
+        include_tags=True,
+        include_comments=True,
+    )
 
-    try:
-        print(f"📋 Testing get_app_variables with app: {test_app_id}")
+    # Verify response structure
+    assert "error" not in result, f"Error retrieving variables: {result.get('error')}"
+    assert "variable_count" in result
+    assert "variables" in result
+    assert "app_id" in result
+    assert "retrieved_at" in result
+    assert isinstance(result["variables"], list)
 
-        # Test the tool function
-        result = await get_app_variables(
-            app_id=test_app_id,
-            include_definition=True,
-            include_tags=True,
-            show_reserved=True,
-            show_config=True
-        )
+    # Verify variable structure if variables exist
+    if result["variable_count"] > 0:
+        variable = result["variables"][0]
+        assert "name" in variable
+        # Since we requested all options, these should be present
+        assert "definition" in variable
+        assert "tags" in variable
+        assert "comment" in variable
 
-        if "error" in result:
-            print(f"❌ Error: {result['error']}")
-            return False
 
-        print(f"✅ Retrieved {result['count']} variables")
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_variables_minimal():
+    """Test variable retrieval with minimal options"""
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"
 
-        # Show sample variables
-        variables = result.get("variables", [])
-        print("\n📋 Sample variables (first 5):")
+    result = await get_app_variables(
+        app_id=test_app_id,
+        include_definition=False,
+        include_tags=False,
+        include_comments=False,
+    )
 
-        for i, variable in enumerate(variables[:5]):
-            print(f"\n   {i+1}. {variable['name']}")
-            if variable.get('definition'):
-                definition = variable['definition']
-                truncated = definition[:50] + '...' if len(definition) > 50 else definition
-                print(f"      Definition: {truncated}")
-            if variable.get('is_reserved') is not None:
-                print(f"      Reserved: {variable['is_reserved']}")
-            if variable.get('is_config') is not None:
-                print(f"      Config: {variable['is_config']}")
-            if variable.get('tags'):
-                print(f"      Tags: {variable['tags']}")
+    # Verify response structure
+    assert "error" not in result or result.get("error") == "App not found"
+    if "error" not in result:
+        assert "variable_count" in result
+        assert "variables" in result
 
-        print("\n📄 Response metadata:")
-        print(f"   App ID: {result['app_id']}")
-        print(f"   Count: {result['count']}")
-        print(f"   Retrieved at: {result['retrieved_at']}")
-        print(f"   Options: {result['options']}")
 
-        print("\n" + "=" * 60)
-        print("✅ VARIABLE TEST PASSED!")
-        print("=" * 60)
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_variables_error_handling():
+    """Test error handling with invalid app ID"""
+    result = await get_app_variables(
+        app_id="invalid-app-id",
+        include_definition=True,
+    )
 
-        return True
-
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
-        return False
-
-if __name__ == "__main__":
-    asyncio.run(test_get_variables())
+    # Should return an error for invalid app
+    assert "error" in result

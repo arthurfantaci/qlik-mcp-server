@@ -1,7 +1,9 @@
 """Test the MCP tool functionality directly."""
 
-import pytest
 import json
+
+import pytest
+
 from src.tools import get_app_measures, list_qlik_applications
 
 
@@ -13,7 +15,7 @@ async def test_get_app_measures_with_server(test_app_id, skip_without_qlik):
     result = await get_app_measures(
         app_id=test_app_id,
         include_expression=True,
-        include_tags=True
+        include_tags=True,
     )
 
     # Assertions
@@ -65,7 +67,7 @@ async def test_get_app_measures_minimal_options(test_app_id, skip_without_qlik):
     result = await get_app_measures(
         app_id=test_app_id,
         include_expression=False,
-        include_tags=False
+        include_tags=False,
     )
 
     assert result is not None, "Result should not be None"
@@ -90,13 +92,13 @@ async def test_get_app_measures_minimal_options(test_app_id, skip_without_qlik):
     (False, False),
 ])
 async def test_get_app_measures_options_combinations(
-    test_app_id, include_expression, include_tags, skip_without_qlik
+    test_app_id, include_expression, include_tags, skip_without_qlik,
 ):
     """Test get_app_measures with different option combinations."""
     result = await get_app_measures(
         app_id=test_app_id,
         include_expression=include_expression,
-        include_tags=include_tags
+        include_tags=include_tags,
     )
 
     assert result is not None
@@ -154,7 +156,7 @@ class TestMeasureValidation:
             await get_app_measures(
                 app_id="",  # Empty app ID
                 include_expression=True,
-                include_tags=True
+                include_tags=True,
             )
 
     @pytest.mark.asyncio
@@ -164,7 +166,7 @@ class TestMeasureValidation:
         result = await get_app_measures(
             app_id="nonexistent-app-id-12345",
             include_expression=True,
-            include_tags=True
+            include_tags=True,
         )
 
         # Should either return error in result or raise exception
@@ -182,7 +184,7 @@ class TestSpecificMeasures:
         result = await get_app_measures(
             app_id=test_app_id,
             include_expression=True,
-            include_tags=True
+            include_tags=True,
         )
 
         # Example: looking for a Total_Cost measure

@@ -1,7 +1,7 @@
 """Test basic Qlik Sense server connection functionality."""
 
 import pytest
-import json
+
 from src.qlik_client import QlikClient
 
 
@@ -17,7 +17,7 @@ async def test_qlik_connection_basic(qlik_config, skip_without_qlik):
 
     # Test that websocket is established
     assert client.ws is not None, "WebSocket connection should be established"
-    assert hasattr(client, 'ws'), "Client should have ws attribute"
+    assert hasattr(client, "ws"), "Client should have ws attribute"
 
     # Disconnect
     await client.disconnect()
@@ -73,7 +73,7 @@ async def test_qlik_client_initialization():
     import os
     if os.getenv("QLIK_SERVER_URL"):
         # If environment is configured, these should be set
-        assert hasattr(client, 'server_url'), "Should have server_url attribute"
+        assert hasattr(client, "server_url"), "Should have server_url attribute"
 
 
 @pytest.mark.asyncio
@@ -127,6 +127,7 @@ class TestQlikConnectionConfiguration:
     def test_configuration_from_environment(self):
         """Test that configuration is loaded from environment."""
         import os
+
         from dotenv import load_dotenv
 
         # Load test environment if available
@@ -138,13 +139,12 @@ class TestQlikConnectionConfiguration:
         # If any are set, verify they're accessible
         if any(os.getenv(var) for var in expected_vars):
             client = QlikClient()
-            assert hasattr(client, 'server_url'), "Client should have server_url"
-            assert hasattr(client, 'server_port'), "Client should have server_port"
+            assert hasattr(client, "server_url"), "Client should have server_url"
+            assert hasattr(client, "server_port"), "Client should have server_port"
 
     @pytest.mark.unit
     def test_ssl_certificate_paths(self):
         """Test that SSL certificate paths are configured."""
-        import os
         from pathlib import Path
 
         project_root = Path(__file__).parent.parent
@@ -169,17 +169,16 @@ async def test_mock_connection_flow():
     mock_connected = True
     assert mock_connected, "Mock connection should succeed"
 
-    # Simulate request/response
-    mock_request = {"method": "GetDocList", "params": {}}
+    # Simulate response
     mock_response = {
         "jsonrpc": "2.0",
         "id": 1,
         "result": {
             "qDocList": [
                 {"qDocName": "Test App", "qDocId": "test-123"},
-                {"qDocName": "Demo App", "qDocId": "demo-456"}
-            ]
-        }
+                {"qDocName": "Demo App", "qDocId": "demo-456"},
+            ],
+        },
     }
 
     # Validate mock response structure

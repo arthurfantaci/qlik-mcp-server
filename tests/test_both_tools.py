@@ -1,130 +1,73 @@
-#!/usr/bin/env python3
-"""Test script demonstrating both MCP tools working together"""
+"""Test both MCP tools working together"""
 
-import sys
-import os
-import asyncio
-import json
-
-# Add src to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pytest
 
 from src.tools import get_app_measures, list_qlik_applications
 
 
-async def demonstrate_both_tools():
-    """Demonstrate both MCP tools working together"""
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_both_tools_integration():
+    """Test both MCP tools working together in an integrated workflow"""
+    # Step 1: List all applications
+    apps_result = await list_qlik_applications()
 
-    print("🚀 DEMONSTRATING BOTH MCP TOOLS")
-    print("="*60)
+    # Verify we can list applications
+    assert "error" not in apps_result, f"Error listing apps: {apps_result.get('error')}"
+    assert "count" in apps_result
+    assert "applications" in apps_result
+    assert apps_result["count"] >= 0
 
-    try:
-        # Step 1: List all applications
-        print("\n📋 Step 1: Getting list of all Qlik applications...")
+    # Skip test if no applications are available
+    if apps_result["count"] == 0:
+        pytest.skip("No Qlik applications available for testing")
 
-        apps_result = await list_qlik_applications()
+    # Use the first available app for testing
+    test_app = apps_result["applications"][0]
+    test_app_id = test_app["app_id"]
 
-        if "error" in apps_result:
-            print(f"❌ Error listing apps: {apps_result['error']}")
-            return False
+    # Verify app structure
+    assert "app_id" in test_app
+    assert "name" in test_app
+    assert "last_reload_time" in test_app
 
-        print(f"✅ Found {apps_result['count']} applications")
+    # Step 2: Get measures from the selected app
+    measures_result = await get_app_measures(
+        app_id=test_app_id,
+        include_expression=True,
+        include_tags=True,
+    )
 
-        # Find our test app
-        test_app_id = "12345678-abcd-1234-efgh-123456789abc"
-        test_app = None
+    # Verify we can get measures
+    assert "error" not in measures_result, f"Error getting measures: {measures_result.get('error')}"
+    assert "count" in measures_result
+    assert "measures" in measures_result
+    assert measures_result["count"] >= 0
 
-        for app in apps_result['applications']:
-            if app['app_id'] == test_app_id:
-                test_app = app
-                break
-
-        if test_app:
-            print(f"\n🎯 Found test app: '{test_app['name']}'")
-            print(f"   ID: {test_app['app_id']}")
-            print(f"   Last Reload: {test_app['last_reload_time']}")
-        else:
-            # Use the first available app as fallback
-            test_app = apps_result['applications'][0]
-            test_app_id = test_app['app_id']
-            print(f"\n🎯 Using first available app: '{test_app['name']}'")
-            print(f"   ID: {test_app['app_id']}")
-
-        # Step 2: Get measures from the selected app
-        print(f"\n📊 Step 2: Getting measures from app '{test_app['name']}'...")
-
-        measures_result = await get_app_measures(
-            app_id=test_app_id,
-            include_expression=True,
-            include_tags=True
-        )
-
-        if "error" in measures_result:
-            print(f"❌ Error getting measures: {measures_result['error']}")
-            return False
-
-        print(f"✅ Found {measures_result['count']} measures")
-
-        # Show sample workflow results
-        print("\n📈 Workflow Results:")
-        print(f"   Total Applications: {apps_result['count']}")
-        print(f"   Selected App: {test_app['name']}")
-        print(f"   App Measures: {measures_result['count']}")
-
-        if measures_result['measures']:
-            print(f"\n📊 Sample measures from '{test_app['name']}':")
-            for i, measure in enumerate(measures_result['measures'][:3], 1):
-                print(f"   {i}. {measure['title']}")
-                if measure.get('expression'):
-                    expr_len = len(measure['expression'])
-                    expr = measure['expression'][:50] + "..." if expr_len > 50 else measure['expression']
-                    print(f"      Expression: {expr}")
-
-        # Show JSON structure for both responses
-        print("\n📄 Combined Response Structure:")
-        combined_response = {
-            "workflow": "List apps then get measures",
-            "applications_summary": {
-                "total_count": apps_result['count'],
-                "sample_apps": [
-                    {"name": app['name'], "app_id": app['app_id']}
-                    for app in apps_result['applications'][:3]
-                ]
-            },
-            "measures_summary": {
-                "app_name": test_app['name'],
-                "app_id": test_app_id,
-                "measures_count": measures_result['count'],
-                "sample_measures": [
-                    {
-                        "title": m['title'],
-                        "expression": (
-                            m.get('expression', '')[:30] + "..."
-                            if m.get('expression') and len(m.get('expression', '')) > 30
-                            else m.get('expression', '')
-                        )
-                    }
-                    for m in measures_result['measures'][:2]
-                ]
-            }
-        }
-
-        print(json.dumps(combined_response, indent=2))
-
-        print(f"\n{'='*60}")
-        print("✅ BOTH TOOLS WORKING PERFECTLY!")
-        print("🎉 Ready for MCP client integration!")
-        print(f"{'='*60}")
-
-        return True
-
-    except Exception as e:
-        print(f"\n❌ Demonstration failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    # If measures exist, verify their structure
+    if measures_result["count"] > 0:
+        measure = measures_result["measures"][0]
+        assert "id" in measure
+        assert "title" in measure
+        # If we requested expression and tags, they should be present
+        assert "expression" in measure
+        assert "tags" in measure
 
 
-if __name__ == "__main__":
-    success = asyncio.run(demonstrate_both_tools())
-    sys.exit(0 if success else 1)
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_tools_workflow():
+    """Test a complete workflow using both tools"""
+    # First get list of applications
+    apps_result = await list_qlik_applications()
+    assert "error" not in apps_result
+
+    # If apps exist, get measures from one of them
+    if apps_result["count"] > 0:
+        app = apps_result["applications"][0]
+        measures_result = await get_app_measures(app_id=app["app_id"])
+        assert "error" not in measures_result
+
+        # Verify the workflow completed successfully
+        assert isinstance(apps_result["count"], int)
+        assert isinstance(measures_result["count"], int)

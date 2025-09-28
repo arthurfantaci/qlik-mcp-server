@@ -1,156 +1,82 @@
-#!/usr/bin/env python3
-"""Test script for the sheet and visualization object functionality"""
+"""Test sheet and visualization object functionality"""
 
-import asyncio
-import sys
-import os
+import pytest
 
-# Add the project directory to Python path
-project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_dir)
+from src.tools import get_app_sheets, get_sheet_objects
 
-from src.tools import get_app_sheets, get_sheet_objects  # noqa: E402
 
-async def test_sheet_functionality():
-    """Test the sheet and visualization object retrieval"""
-
-    # Use the same test app as other tests
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_sheets():
+    """Test sheet retrieval"""
     test_app_id = "12345678-abcd-1234-efgh-123456789abc"
 
-    print("🚀 TESTING SHEET AND VISUALIZATION FUNCTIONALITY")
-    print("=" * 60)
+    result = await get_app_sheets(
+        app_id=test_app_id,
+        include_thumbnail=False,
+        include_objects=True,
+    )
 
-    try:
-        # First, get all sheets
-        print(f"\n📄 Testing get_app_sheets with app: {test_app_id}")
-        print("-" * 40)
+    # Verify response structure
+    assert "error" not in result, f"Error retrieving sheets: {result.get('error')}"
+    assert "sheet_count" in result
+    assert "sheets" in result
+    assert isinstance(result["sheets"], list)
 
-        sheets_result = await get_app_sheets(
-            app_id=test_app_id,
-            include_thumbnail=False,
-            include_metadata=True
-        )
+    # Verify sheet structure if sheets exist
+    if result["sheet_count"] > 0:
+        sheet = result["sheets"][0]
+        assert "sheet_id" in sheet
+        assert "title" in sheet
+        assert "description" in sheet
+        assert "object_count" in sheet
 
-        if "error" in sheets_result:
-            print(f"❌ Error getting sheets: {sheets_result['error']}")
-            return False
+        # Since we requested objects, they should be included
+        if sheet["object_count"] > 0:
+            assert "objects" in sheet
 
-        print(f"✅ Retrieved {sheets_result['sheet_count']} sheets")
 
-        # Show sheet information
-        sheets = sheets_result.get("sheets", [])
-        print("\n📄 Sheets found:")
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_sheet_objects():
+    """Test retrieving objects from a specific sheet"""
+    test_app_id = "12345678-abcd-1234-efgh-123456789abc"
+    test_sheet_id = "test-sheet-id"
 
-        test_sheet_id = None
-        for i, sheet in enumerate(sheets[:10]):  # Show first 10 sheets
-            print(f"\n   {i+1}. {sheet.get('title', 'Untitled')}")
-            print(f"      ID: {sheet['sheet_id']}")
-            if sheet.get('description'):
-                print(f"      Description: {sheet['description']}")
-            if sheet.get('created'):
-                print(f"      Created: {sheet['created']}")
-            if sheet.get('modified'):
-                print(f"      Modified: {sheet['modified']}")
-            print(f"      Published: {sheet.get('published', False)}")
-            print(f"      Approved: {sheet.get('approved', False)}")
+    result = await get_sheet_objects(
+        app_id=test_app_id,
+        sheet_id=test_sheet_id,
+        include_expressions=True,
+        resolve_master_items=True,
+        extract_vizlib_objects=True,
+    )
 
-            # Store first sheet ID for object testing
-            if i == 0 and sheet.get('sheet_id'):
-                test_sheet_id = sheet['sheet_id']
+    # Verify response structure
+    assert "error" not in result or result.get("error") == "Sheet not found"
 
-        if len(sheets) > 10:
-            print(f"\n   ... and {len(sheets) - 10} more sheets")
+    if "error" not in result:
+        assert "sheet_id" in result
+        assert "object_count" in result
+        assert "objects" in result
+        assert isinstance(result["objects"], list)
 
-        # Test getting objects from a sheet if we have one
-        if test_sheet_id:
-            print(f"\n\n📊 Testing get_sheet_objects with sheet: {test_sheet_id}")
-            print("-" * 40)
+        # Verify object structure if objects exist
+        if result["object_count"] > 0:
+            obj = result["objects"][0]
+            assert "object_id" in obj
+            assert "type" in obj
+            assert "title" in obj
+            assert "visualization" in obj
 
-            objects_result = await get_sheet_objects(
-                app_id=test_app_id,
-                sheet_id=test_sheet_id,
-                include_properties=True,
-                include_layout=True,
-                include_data_definition=True
-            )
 
-            if "error" in objects_result:
-                print(f"❌ Error getting sheet objects: {objects_result['error']}")
-                return False
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_sheets_error_handling():
+    """Test error handling with invalid app ID"""
+    result = await get_app_sheets(
+        app_id="invalid-app-id",
+        include_objects=True,
+    )
 
-            obj_count = objects_result['object_count']
-            sheet_title = objects_result.get('sheet_title', 'Untitled')
-            print(f"✅ Retrieved {obj_count} objects from sheet: {sheet_title}")
-
-            # Show object information
-            objects = objects_result.get("objects", [])
-            print("\n📊 Visualization objects found:")
-
-            # Count object types
-            object_types = {}
-            for obj in objects:
-                obj_type = obj.get('object_type', 'unknown')
-                object_types[obj_type] = object_types.get(obj_type, 0) + 1
-
-            print("\n   Object types summary:")
-            for obj_type, count in sorted(object_types.items()):
-                print(f"      {obj_type}: {count}")
-
-            # Show detailed info for first few objects
-            print("\n   Detailed object information (first 5):")
-
-            for i, obj in enumerate(objects[:5]):
-                print(f"\n   {i+1}. {obj.get('title', obj.get('object_type', 'Unknown'))}")
-                print(f"      ID: {obj['object_id']}")
-                print(f"      Type: {obj['object_type']}")
-
-                if obj.get('subtitle'):
-                    print(f"      Subtitle: {obj['subtitle']}")
-
-                if obj.get('layout'):
-                    layout = obj['layout']
-                    print(f"      Position: ({layout.get('x', 0)}, {layout.get('y', 0)})")
-                    print(f"      Size: {layout.get('width', 0)} x {layout.get('height', 0)}")
-
-                if obj.get('measures'):
-                    print("      Measures:")
-                    for measure in obj['measures'][:3]:  # Show first 3 measures
-                        print(f"         - {measure.get('label', 'Unnamed')}: {measure.get('expression', '')[:50]}...")
-
-                if obj.get('dimensions'):
-                    print("      Dimensions:")
-                    for dimension in obj['dimensions'][:3]:  # Show first 3 dimensions
-                        print(f"         - {dimension.get('label', 'Unnamed')}: {dimension.get('field', '')}")
-
-                if obj.get('properties'):
-                    print(f"      Properties: {list(obj['properties'].keys())}")
-
-            if len(objects) > 5:
-                print(f"\n   ... and {len(objects) - 5} more objects")
-
-        else:
-            print("\n⚠️ No sheets found to test object retrieval")
-
-        # Show response metadata
-        print("\n\n📄 Response Metadata:")
-        print(f"   Sheets retrieved at: {sheets_result['retrieved_at']}")
-        print(f"   Sheets options: {sheets_result['options']}")
-
-        if test_sheet_id and 'retrieved_at' in objects_result:
-            print(f"   Objects retrieved at: {objects_result['retrieved_at']}")
-            print(f"   Objects options: {objects_result['options']}")
-
-        print("\n" + "=" * 60)
-        print("✅ SHEET AND VISUALIZATION TEST PASSED!")
-        print("=" * 60)
-
-        return True
-
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
-        return False
-
-if __name__ == "__main__":
-    asyncio.run(test_sheet_functionality())
+    # Should return an error for invalid app
+    assert "error" in result

@@ -1,11 +1,12 @@
 """Pytest configuration and shared fixtures for Qlik MCP Server tests."""
 
+import asyncio
 import os
 import sys
-import pytest
-import asyncio
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any
+
+import pytest
 from dotenv import load_dotenv
 
 # Add project root to path for imports
@@ -31,7 +32,7 @@ def qlik_server_available() -> bool:
 # Skip decorator for integration tests
 skip_without_qlik = pytest.mark.skipif(
     not qlik_server_available(),
-    reason="Qlik Sense server not available or SKIP_INTEGRATION_TESTS=true"
+    reason="Qlik Sense server not available or SKIP_INTEGRATION_TESTS=true",
 )
 
 
@@ -62,14 +63,14 @@ def test_container_id() -> str:
 
 
 @pytest.fixture
-def qlik_config() -> Dict[str, Any]:
+def qlik_config() -> dict[str, Any]:
     """Provide Qlik server configuration."""
     return {
         "server_url": os.getenv("QLIK_SERVER_URL", "test-server.example.com"),
         "server_port": int(os.getenv("QLIK_SERVER_PORT", "4747")),
         "user_directory": os.getenv("QLIK_USER_DIRECTORY", "INTERNAL"),
         "user_id": os.getenv("QLIK_USER_ID", "sa_engine"),
-        "timeout": int(os.getenv("WEBSOCKET_TIMEOUT", "10000"))
+        "timeout": int(os.getenv("WEBSOCKET_TIMEOUT", "10000")),
     }
 
 
@@ -85,7 +86,7 @@ async def qlik_client(qlik_config):
     # Note: Connection will be established when needed
     yield client
     # Cleanup if needed
-    if hasattr(client, 'ws') and client.ws:
+    if hasattr(client, "ws") and client.ws:
         try:
             client.disconnect()
         except Exception:
@@ -104,7 +105,7 @@ def mock_measures_response():
                 "description": "Sum of all sales",
                 "expression": "Sum(Sales)",
                 "label": "Total Sales",
-                "tags": ["kpi", "sales"]
+                "tags": ["kpi", "sales"],
             },
             {
                 "id": "measure2",
@@ -112,15 +113,15 @@ def mock_measures_response():
                 "description": "Average value per order",
                 "expression": "Sum(Sales)/Count(DISTINCT OrderID)",
                 "label": "AOV",
-                "tags": ["kpi", "sales", "average"]
-            }
+                "tags": ["kpi", "sales", "average"],
+            },
         ],
         "count": 2,
         "retrieved_at": "2025-01-01T12:00:00Z",
         "options": {
             "include_expression": True,
-            "include_tags": True
-        }
+            "include_tags": True,
+        },
     }
 
 
@@ -134,18 +135,18 @@ def mock_applications_response():
                 "name": "Sales Dashboard",
                 "last_reload_time": "2025-01-01T10:00:00Z",
                 "meta": {},
-                "doc_type": ""
+                "doc_type": "",
             },
             {
                 "app_id": "87654321-dcba-4321-hgfe-cba987654321",
                 "name": "Finance Dashboard",
                 "last_reload_time": "2025-01-01T11:00:00Z",
                 "meta": {},
-                "doc_type": ""
-            }
+                "doc_type": "",
+            },
         ],
         "count": 2,
-        "retrieved_at": "2025-01-01T12:00:00Z"
+        "retrieved_at": "2025-01-01T12:00:00Z",
     }
 
 
@@ -184,14 +185,14 @@ LET vLastReloadTime = Now();
             "sections": [
                 {"name": "Main", "start_line": 1, "end_line": 6},
                 {"name": "Sales Data", "start_line": 8, "end_line": 16},
-                {"name": "Variables", "start_line": 18, "end_line": 20}
+                {"name": "Variables", "start_line": 18, "end_line": 20},
             ],
             "binary_loads": [
                 {
                     "statement": "Binary [lib://Apps/BaseApp.qvf];",
                     "source_app": "lib://Apps/BaseApp.qvf",
-                    "line_number": 6
-                }
+                    "line_number": 6,
+                },
             ],
             "load_statements": 1,
             "store_statements": 0,
@@ -200,14 +201,14 @@ LET vLastReloadTime = Now();
                 "SET": [
                     {"name": "ThousandSep", "value": "','", "line": 2},
                     {"name": "DecimalSep", "value": "'.'", "line": 3},
-                    {"name": "vCurrentYear", "value": "Year(Today())", "line": 19}
+                    {"name": "vCurrentYear", "value": "Year(Today())", "line": 19},
                 ],
                 "LET": [
-                    {"name": "vLastReloadTime", "value": "Now()", "line": 20}
-                ]
-            }
+                    {"name": "vLastReloadTime", "value": "Now()", "line": 20},
+                ],
+            },
         },
-        "retrieved_at": "2025-01-01T12:00:00Z"
+        "retrieved_at": "2025-01-01T12:00:00Z",
     }
 
 
@@ -215,16 +216,16 @@ LET vLastReloadTime = Now();
 def pytest_configure(config):
     """Configure pytest with custom markers."""
     config.addinivalue_line(
-        "markers", "integration: mark test as requiring Qlik Sense connection"
+        "markers", "integration: mark test as requiring Qlik Sense connection",
     )
     config.addinivalue_line(
-        "markers", "unit: mark test as unit test (no external dependencies)"
+        "markers", "unit: mark test as unit test (no external dependencies)",
     )
     config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
+        "markers", "slow: mark test as slow running",
     )
     config.addinivalue_line(
-        "markers", "skip_without_qlik: skip test if Qlik server unavailable"
+        "markers", "skip_without_qlik: skip test if Qlik server unavailable",
     )
 
 

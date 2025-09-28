@@ -4,35 +4,48 @@
 import os
 import pathlib
 import sys
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any
+
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
 # Import tools and argument models
 from .tools import (
-    get_app_measures, list_qlik_applications, get_app_variables,
-    get_app_fields, get_app_sheets, get_sheet_objects, get_app_dimensions, get_app_script, get_app_data_sources,
-    GetAppMeasuresArgs, GetAppVariablesArgs, GetAppFieldsArgs, GetAppSheetsArgs,
-    GetSheetObjectsArgs, GetAppDimensionsArgs, GetAppScriptArgs, GetAppDataSourcesArgs
+    GetAppDataSourcesArgs,
+    GetAppDimensionsArgs,
+    GetAppFieldsArgs,
+    GetAppMeasuresArgs,
+    GetAppScriptArgs,
+    GetAppSheetsArgs,
+    GetAppVariablesArgs,
+    GetSheetObjectsArgs,
+    get_app_data_sources,
+    get_app_dimensions,
+    get_app_fields,
+    get_app_measures,
+    get_app_script,
+    get_app_sheets,
+    get_app_variables,
+    get_sheet_objects,
+    list_qlik_applications,
 )
 
 # Load environment variables - ensure we load from the correct directory
 project_root = pathlib.Path(__file__).parent.parent
-env_path = project_root / '.env'
+env_path = project_root / ".env"
 load_dotenv(env_path)
 
 # Create MCP server instance
 mcp = FastMCP(
     name=os.getenv("MCP_SERVER_NAME", "qlik-sense"),
-    version=os.getenv("MCP_SERVER_VERSION", "1.0.0")
+    version=os.getenv("MCP_SERVER_VERSION", "1.0.0"),
 )
 
 # Register the get_app_measures tool
 @mcp.tool()
-async def handle_get_app_measures(args: GetAppMeasuresArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving Qlik Sense measures.
+async def handle_get_app_measures(args: GetAppMeasuresArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving Qlik Sense measures.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     creates a MeasureList session object, retrieves all measure metadata,
@@ -46,7 +59,7 @@ async def handle_get_app_measures(args: GetAppMeasuresArgs) -> Dict[str, Any]:
         result = await get_app_measures(
             app_id=args.app_id,
             include_expression=args.include_expression,
-            include_tags=args.include_tags
+            include_tags=args.include_tags,
         )
 
         if "error" in result:
@@ -58,8 +71,8 @@ async def handle_get_app_measures(args: GetAppMeasuresArgs) -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -69,9 +82,8 @@ async def handle_get_app_measures(args: GetAppMeasuresArgs) -> Dict[str, Any]:
 
 # Register the list_qlik_applications tool
 @mcp.tool()
-async def handle_list_qlik_applications() -> Dict[str, Any]:
-    """
-    MCP tool handler for listing all Qlik Sense applications.
+async def handle_list_qlik_applications() -> dict[str, Any]:
+    """MCP tool handler for listing all Qlik Sense applications.
 
     This tool connects to Qlik Sense server global context and retrieves
     a list of all available applications with their names and IDs.
@@ -92,8 +104,8 @@ async def handle_list_qlik_applications() -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "timestamp": datetime.utcnow().isoformat()
+            "error": f"Unexpected error: {e!s}",
+            "timestamp": datetime.utcnow().isoformat(),
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -103,9 +115,8 @@ async def handle_list_qlik_applications() -> Dict[str, Any]:
 
 # Register the get_app_variables tool
 @mcp.tool()
-async def handle_get_app_variables(args: GetAppVariablesArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving Qlik Sense variables.
+async def handle_get_app_variables(args: GetAppVariablesArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving Qlik Sense variables.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     creates a VariableList session object, retrieves all variable metadata,
@@ -121,7 +132,7 @@ async def handle_get_app_variables(args: GetAppVariablesArgs) -> Dict[str, Any]:
             include_definition=args.include_definition,
             include_tags=args.include_tags,
             show_reserved=args.show_reserved,
-            show_config=args.show_config
+            show_config=args.show_config,
         )
 
         if "error" in result:
@@ -133,8 +144,8 @@ async def handle_get_app_variables(args: GetAppVariablesArgs) -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -144,9 +155,8 @@ async def handle_get_app_variables(args: GetAppVariablesArgs) -> Dict[str, Any]:
 
 # Register the get_app_fields tool
 @mcp.tool()
-async def handle_get_app_fields(args: GetAppFieldsArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving Qlik Sense fields and table information.
+async def handle_get_app_fields(args: GetAppFieldsArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving Qlik Sense fields and table information.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     creates a FieldList session object, retrieves all field metadata and table information,
@@ -164,7 +174,7 @@ async def handle_get_app_fields(args: GetAppFieldsArgs) -> Dict[str, Any]:
             show_derived_fields=args.show_derived_fields,
             show_semantic=args.show_semantic,
             show_src_tables=args.show_src_tables,
-            show_implicit=args.show_implicit
+            show_implicit=args.show_implicit,
         )
 
         if "error" in result:
@@ -176,8 +186,8 @@ async def handle_get_app_fields(args: GetAppFieldsArgs) -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -187,9 +197,8 @@ async def handle_get_app_fields(args: GetAppFieldsArgs) -> Dict[str, Any]:
 
 # Register the get_app_sheets tool
 @mcp.tool()
-async def handle_get_app_sheets(args: GetAppSheetsArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving Qlik Sense sheets.
+async def handle_get_app_sheets(args: GetAppSheetsArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving Qlik Sense sheets.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     creates a SheetList session object, retrieves all sheet metadata,
@@ -203,7 +212,7 @@ async def handle_get_app_sheets(args: GetAppSheetsArgs) -> Dict[str, Any]:
         result = await get_app_sheets(
             app_id=args.app_id,
             include_thumbnail=args.include_thumbnail,
-            include_metadata=args.include_metadata
+            include_metadata=args.include_metadata,
         )
 
         if "error" in result:
@@ -215,8 +224,8 @@ async def handle_get_app_sheets(args: GetAppSheetsArgs) -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -226,9 +235,8 @@ async def handle_get_app_sheets(args: GetAppSheetsArgs) -> Dict[str, Any]:
 
 # Register the get_sheet_objects tool
 @mcp.tool()
-async def handle_get_sheet_objects(args: GetSheetObjectsArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving visualization objects from a sheet.
+async def handle_get_sheet_objects(args: GetSheetObjectsArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving visualization objects from a sheet.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     retrieves the sheet and all its visualization objects with detailed metadata,
@@ -245,7 +253,7 @@ async def handle_get_sheet_objects(args: GetSheetObjectsArgs) -> Dict[str, Any]:
             include_properties=args.include_properties,
             include_layout=args.include_layout,
             include_data_definition=args.include_data_definition,
-            resolve_master_items=args.resolve_master_items
+            resolve_master_items=args.resolve_master_items,
         )
 
         if "error" in result:
@@ -257,9 +265,9 @@ async def handle_get_sheet_objects(args: GetSheetObjectsArgs) -> Dict[str, Any]:
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
+            "error": f"Unexpected error: {e!s}",
             "app_id": args.app_id,
-            "sheet_id": args.sheet_id
+            "sheet_id": args.sheet_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -268,9 +276,8 @@ async def handle_get_sheet_objects(args: GetSheetObjectsArgs) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def handle_get_app_dimensions(args: GetAppDimensionsArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving dimensions from a Qlik Sense application.
+async def handle_get_app_dimensions(args: GetAppDimensionsArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving dimensions from a Qlik Sense application.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     retrieves all dimensions with their metadata and configuration details,
@@ -286,7 +293,7 @@ async def handle_get_app_dimensions(args: GetAppDimensionsArgs) -> Dict[str, Any
             include_title=args.include_title,
             include_tags=args.include_tags,
             include_grouping=args.include_grouping,
-            include_info=args.include_info
+            include_info=args.include_info,
         )
 
         if "error" in result:
@@ -298,8 +305,8 @@ async def handle_get_app_dimensions(args: GetAppDimensionsArgs) -> Dict[str, Any
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -308,9 +315,8 @@ async def handle_get_app_dimensions(args: GetAppDimensionsArgs) -> Dict[str, Any
 
 
 @mcp.tool()
-async def handle_get_app_script(args: GetAppScriptArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving and analyzing the script from a Qlik Sense application.
+async def handle_get_app_script(args: GetAppScriptArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving and analyzing the script from a Qlik Sense application.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     retrieves the complete application script used for data loading and transformation,
@@ -334,13 +340,13 @@ async def handle_get_app_script(args: GetAppScriptArgs) -> Dict[str, Any]:
             analyze_script=args.analyze_script,
             include_sections=args.include_sections,
             include_line_numbers=args.include_line_numbers,
-            max_preview_length=args.max_preview_length
+            max_preview_length=args.max_preview_length,
         )
 
         if "error" in result:
             print(f"❌ Error: {result['error']}", file=sys.stderr)
         else:
-            script_length = result.get('script_length', 0)
+            script_length = result.get("script_length", 0)
             print(f"✅ Retrieved script from app ({script_length:,} characters)", file=sys.stderr)
 
             if "analysis" in result:
@@ -351,20 +357,20 @@ async def handle_get_app_script(args: GetAppScriptArgs) -> Dict[str, Any]:
                 print(f"   • LOAD statements: {analysis['load_statements']}", file=sys.stderr)
                 print(f"   • BINARY LOAD statements: {len(analysis['binary_load_statements'])}", file=sys.stderr)
 
-                if analysis['binary_load_statements']:
+                if analysis["binary_load_statements"]:
                     print("   📦 BINARY LOAD sources:", file=sys.stderr)
-                    for binary in analysis['binary_load_statements']:
+                    for binary in analysis["binary_load_statements"]:
                         print(f"      - Line {binary['line_number']}: {binary['source_app']}", file=sys.stderr)
 
-            if result.get('is_truncated'):
+            if result.get("is_truncated"):
                 print(f"⚠️ Script truncated to {args.max_preview_length:,} characters", file=sys.stderr)
 
         return result
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback
@@ -373,9 +379,8 @@ async def handle_get_app_script(args: GetAppScriptArgs) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def handle_get_app_data_sources(args: GetAppDataSourcesArgs) -> Dict[str, Any]:
-    """
-    MCP tool handler for retrieving data sources from a Qlik Sense application.
+async def handle_get_app_data_sources(args: GetAppDataSourcesArgs) -> dict[str, Any]:
+    """MCP tool handler for retrieving data sources from a Qlik Sense application.
 
     This tool connects to a Qlik Sense server, opens the specified application,
     retrieves the lineage information to identify all data sources used in LOAD
@@ -391,26 +396,26 @@ async def handle_get_app_data_sources(args: GetAppDataSourcesArgs) -> Dict[str, 
             include_resident=args.include_resident,
             include_file_sources=args.include_file_sources,
             include_binary_sources=args.include_binary_sources,
-            include_inline_sources=args.include_inline_sources
+            include_inline_sources=args.include_inline_sources,
         )
 
         if "error" in result:
             print(f"❌ Error: {result['error']}", file=sys.stderr)
         else:
-            source_count = result.get('source_count', 0)
-            categories = result.get('categories', {})
+            source_count = result.get("source_count", 0)
+            categories = result.get("categories", {})
             print(f"✅ Retrieved {source_count} data sources from app", file=sys.stderr)
-            binary_count = categories.get('binary_count', 0)
-            file_count = categories.get('file_count', 0)
-            resident_count = categories.get('resident_count', 0)
+            binary_count = categories.get("binary_count", 0)
+            file_count = categories.get("file_count", 0)
+            resident_count = categories.get("resident_count", 0)
             print(f"   Binary: {binary_count}, Files: {file_count}, Resident: {resident_count}", file=sys.stderr)
 
         return result
 
     except Exception as e:
         error_response = {
-            "error": f"Unexpected error: {str(e)}",
-            "app_id": args.app_id
+            "error": f"Unexpected error: {e!s}",
+            "app_id": args.app_id,
         }
         print(f"❌ Unexpected error in MCP handler: {e}", file=sys.stderr)
         import traceback

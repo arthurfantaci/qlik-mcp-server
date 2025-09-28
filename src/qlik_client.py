@@ -1,9 +1,10 @@
 """Simplified Qlik WebSocket client for measure retrieval"""
 
 import json
-import ssl
 import os
-from typing import Dict, Any, Optional, List
+import ssl
+from typing import Any
+
 import websocket
 from dotenv import load_dotenv
 
@@ -31,9 +32,9 @@ class QlikClient:
         self.recv_timeout = int(os.getenv("WEBSOCKET_RECV_TIMEOUT", "60"))
 
         # Connection state
-        self.ws: Optional[websocket.WebSocket] = None
+        self.ws: websocket.WebSocket | None = None
         self.request_id = 0
-        self.app_handle: Optional[int] = None
+        self.app_handle: int | None = None
 
     def connect(self, app_id: str) -> bool:
         """Connect to Qlik Engine and open specified app"""
@@ -49,12 +50,12 @@ class QlikClient:
                 "certfile": self.cert_client,
                 "keyfile": self.cert_key,
                 "check_hostname": False,
-                "ssl_version": ssl.PROTOCOL_TLS
+                "ssl_version": ssl.PROTOCOL_TLS,
             }
 
             # Setup headers
             headers = {
-                "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}"
+                "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}",
             }
 
             # Create WebSocket connection
@@ -62,7 +63,7 @@ class QlikClient:
                 url,
                 sslopt=sslopt,
                 header=headers,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
 
             print("Connected to Qlik Engine")
@@ -72,7 +73,7 @@ class QlikClient:
             result = self._send_request(
                 "OpenDoc",
                 -1,  # Global handle
-                {"qDocName": app_id}
+                {"qDocName": app_id},
             )
 
             if result and "qReturn" in result and "qHandle" in result["qReturn"]:
@@ -115,12 +116,12 @@ class QlikClient:
                 "certfile": self.cert_client,
                 "keyfile": self.cert_key,
                 "check_hostname": False,
-                "ssl_version": ssl.PROTOCOL_TLS
+                "ssl_version": ssl.PROTOCOL_TLS,
             }
 
             # Setup headers
             headers = {
-                "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}"
+                "X-Qlik-User": f"UserDirectory={self.user_directory}; UserId={self.user_id}",
             }
 
             # Create WebSocket connection
@@ -128,7 +129,7 @@ class QlikClient:
                 url,
                 sslopt=sslopt,
                 header=headers,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
 
             print("Connected to Qlik Engine global context")
@@ -138,7 +139,7 @@ class QlikClient:
             print(f"Global connection failed: {e}")
             return False
 
-    def get_doc_list(self) -> Dict[str, Any]:
+    def get_doc_list(self) -> dict[str, Any]:
         """Get list of all available applications"""
         if not self.ws:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -160,20 +161,20 @@ class QlikClient:
                         "name": app.get("qTitle", "Untitled"),
                         "last_reload_time": app.get("qLastReloadTime", ""),
                         "meta": app.get("qMeta", {}),
-                        "doc_type": app.get("qDocType", "")
+                        "doc_type": app.get("qDocType", ""),
                     }
                     apps.append(app_info)
 
             return {
                 "applications": apps,
-                "count": len(apps)
+                "count": len(apps),
             }
 
         except Exception as e:
             print(f"Error fetching application list: {e}")
             raise
 
-    def get_measures(self, include_expression: bool = True, include_tags: bool = True) -> Dict[str, Any]:
+    def get_measures(self, include_expression: bool = True, include_tags: bool = True) -> dict[str, Any]:
         """Retrieve all measures from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -186,7 +187,7 @@ class QlikClient:
             q_data = {
                 "title": "/qMetaDef/title",
                 "description": "/qMetaDef/description",
-                "id": "/qInfo/qId"
+                "id": "/qInfo/qId",
             }
 
             if include_expression:
@@ -199,19 +200,19 @@ class QlikClient:
             create_params = [
                 {
                     "qInfo": {
-                        "qType": "MeasureList"
+                        "qType": "MeasureList",
                     },
                     "qMeasureListDef": {
                         "qType": "measure",
-                        "qData": q_data
-                    }
-                }
+                        "qData": q_data,
+                    },
+                },
             ]
 
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
-                create_params
+                create_params,
             )
 
             if not create_result or "qReturn" not in create_result:
@@ -239,7 +240,7 @@ class QlikClient:
                     measure = {
                         "id": q_data.get("id", q_info.get("qId", "")),
                         "title": q_data.get("title", q_meta.get("title", "")),
-                        "description": q_data.get("description", q_meta.get("description", ""))
+                        "description": q_data.get("description", q_meta.get("description", "")),
                     }
 
                     if include_expression:
@@ -276,7 +277,7 @@ class QlikClient:
 
             return {
                 "measures": measures,
-                "count": len(measures)
+                "count": len(measures),
             }
 
         except Exception as e:
@@ -288,8 +289,8 @@ class QlikClient:
         include_definition: bool = True,
         include_tags: bool = True,
         show_reserved: bool = True,
-        show_config: bool = True
-    ) -> Dict[str, Any]:
+        show_config: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve all variables from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -300,7 +301,7 @@ class QlikClient:
 
             # Build qData paths based on options
             q_data = {
-                "name": "/qName"
+                "name": "/qName",
             }
 
             if include_definition:
@@ -312,21 +313,21 @@ class QlikClient:
             create_params = [
                 {
                     "qInfo": {
-                        "qType": "VariableList"
+                        "qType": "VariableList",
                     },
                     "qVariableListDef": {
                         "qType": "variable",
                         "qShowReserved": show_reserved,
                         "qShowConfig": show_config,
-                        "qData": q_data
-                    }
-                }
+                        "qData": q_data,
+                    },
+                },
             ]
 
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
-                create_params
+                create_params,
             )
 
             if not create_result or "qReturn" not in create_result:
@@ -351,7 +352,7 @@ class QlikClient:
                     q_info = item.get("qInfo", {})
 
                     variable = {
-                        "name": q_data.get("name", q_info.get("qId", ""))
+                        "name": q_data.get("name", q_info.get("qId", "")),
                     }
 
                     if include_definition:
@@ -374,7 +375,7 @@ class QlikClient:
 
             return {
                 "variables": variables,
-                "count": len(variables)
+                "count": len(variables),
             }
 
         except Exception as e:
@@ -388,8 +389,8 @@ class QlikClient:
         show_derived_fields: bool = True,
         show_semantic: bool = True,
         show_src_tables: bool = True,
-        show_implicit: bool = True
-    ) -> Dict[str, Any]:
+        show_implicit: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve all fields from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -401,7 +402,7 @@ class QlikClient:
             create_params = [
                 {
                     "qInfo": {
-                        "qType": "FieldList"
+                        "qType": "FieldList",
                     },
                     "qFieldListDef": {
                         "qShowSystem": show_system,
@@ -409,15 +410,15 @@ class QlikClient:
                         "qShowDerivedFields": show_derived_fields,
                         "qShowSemantic": show_semantic,
                         "qShowSrcTables": show_src_tables,
-                        "qShowImplicit": show_implicit
-                    }
-                }
+                        "qShowImplicit": show_implicit,
+                    },
+                },
             ]
 
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
-                create_params
+                create_params,
             )
 
             if not create_result or "qReturn" not in create_result:
@@ -448,7 +449,7 @@ class QlikClient:
                         "is_hidden": item.get("qIsHidden", False),
                         "is_semantic": item.get("qIsSemantic", False),
                         "is_numeric": item.get("qIsNumeric", False),
-                        "cardinal": item.get("qCardinal", 0)
+                        "cardinal": item.get("qCardinal", 0),
                     }
 
                     # Add source table information if available
@@ -480,7 +481,7 @@ class QlikClient:
                 "fields": fields,
                 "field_count": len(fields),
                 "tables": tables_list,
-                "table_count": len(tables_list)
+                "table_count": len(tables_list),
             }
 
         except Exception as e:
@@ -490,8 +491,8 @@ class QlikClient:
     def get_sheets(
         self,
         include_thumbnail: bool = False,
-        include_metadata: bool = True
-    ) -> Dict[str, Any]:
+        include_metadata: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve all sheets from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -537,7 +538,7 @@ class QlikClient:
                                 "sheet_id": sheet_id,
                                 "title": q_meta.get("title", ""),
                                 "description": q_meta.get("description", ""),
-                                "rank": layout.get("rank", 0)
+                                "rank": layout.get("rank", 0),
                             }
 
                             if include_thumbnail:
@@ -562,7 +563,7 @@ class QlikClient:
                         "sheet_id": sheet_id,
                         "title": sheet_id,  # Use sheet_id as title fallback
                         "description": "",
-                        "rank": 0
+                        "rank": 0,
                     })
 
             # Sort sheets by rank
@@ -572,7 +573,7 @@ class QlikClient:
 
             return {
                 "sheets": sheets,
-                "sheet_count": len(sheets)
+                "sheet_count": len(sheets),
             }
 
         except Exception as e:
@@ -585,8 +586,8 @@ class QlikClient:
         include_properties: bool = True,
         include_layout: bool = True,
         include_data_definition: bool = True,
-        resolve_master_items: bool = True
-    ) -> Dict[str, Any]:
+        resolve_master_items: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve all visualization objects from a specific sheet, including container contents"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -597,7 +598,7 @@ class QlikClient:
             sheet_result = self._send_request(
                 "GetObject",
                 self.app_handle,
-                [sheet_id]
+                [sheet_id],
             )
 
             # print(f"GetObject result: {sheet_result}")  # Debug output
@@ -641,7 +642,7 @@ class QlikClient:
 
                 obj_data = {
                     "object_id": obj_id,
-                    "object_type": obj_type
+                    "object_type": obj_type,
                 }
 
                 # Process ALL objects including containers
@@ -650,7 +651,7 @@ class QlikClient:
                     obj_result = self._send_request(
                         "GetObject",
                         self.app_handle,
-                        [obj_id]
+                        [obj_id],
                     )
 
                     if obj_result and "qReturn" in obj_result:
@@ -672,7 +673,7 @@ class QlikClient:
                                 "x": child_info.get("qData", {}).get("col", 0),
                                 "y": child_info.get("qData", {}).get("row", 0),
                                 "width": child_info.get("qData", {}).get("colspan", 0),
-                                "height": child_info.get("qData", {}).get("rowspan", 0)
+                                "height": child_info.get("qData", {}).get("rowspan", 0),
                             }
 
                         # Check if this is a VizlibContainer or similar container
@@ -693,7 +694,7 @@ class QlikClient:
                                 include_data_definition,
                                 resolve_master_items,
                                 master_measures_cache,
-                                master_dimensions_cache
+                                master_dimensions_cache,
                             )
 
                             if container_objects:
@@ -705,40 +706,39 @@ class QlikClient:
                                 obj_data["container_structure"] = self._extract_container_structure(effective_props)
 
                         # Process regular visualization objects
-                        else:
-                            # Extract measures and dimensions
-                            if include_data_definition:
-                                measures = []
-                                dimensions = []
+                        # Extract measures and dimensions
+                        elif include_data_definition:
+                            measures = []
+                            dimensions = []
 
-                                # Get measures from HyperCubeDef
-                                if "qHyperCubeDef" in obj_layout_data:
-                                    hc_def = obj_layout_data["qHyperCubeDef"]
+                            # Get measures from HyperCubeDef
+                            if "qHyperCubeDef" in obj_layout_data:
+                                hc_def = obj_layout_data["qHyperCubeDef"]
 
-                                    # Extract measures
-                                    if "qMeasures" in hc_def:
-                                        for measure in hc_def["qMeasures"]:
-                                            measure_data = self._process_measure(
-                                                measure,
-                                                resolve_master_items,
-                                                master_measures_cache
-                                            )
-                                            measures.append(measure_data)
+                                # Extract measures
+                                if "qMeasures" in hc_def:
+                                    for measure in hc_def["qMeasures"]:
+                                        measure_data = self._process_measure(
+                                            measure,
+                                            resolve_master_items,
+                                            master_measures_cache,
+                                        )
+                                        measures.append(measure_data)
 
-                                    # Extract dimensions
-                                    if "qDimensions" in hc_def:
-                                        for dimension in hc_def["qDimensions"]:
-                                            dimension_data = self._process_dimension(
-                                                dimension,
-                                                resolve_master_items,
-                                                master_dimensions_cache
-                                            )
-                                            dimensions.append(dimension_data)
+                                # Extract dimensions
+                                if "qDimensions" in hc_def:
+                                    for dimension in hc_def["qDimensions"]:
+                                        dimension_data = self._process_dimension(
+                                            dimension,
+                                            resolve_master_items,
+                                            master_dimensions_cache,
+                                        )
+                                        dimensions.append(dimension_data)
 
-                                if measures:
-                                    obj_data["measures"] = measures
-                                if dimensions:
-                                    obj_data["dimensions"] = dimensions
+                            if measures:
+                                obj_data["measures"] = measures
+                            if dimensions:
+                                obj_data["dimensions"] = dimensions
 
                         # Extract properties if requested
                         if include_properties:
@@ -766,7 +766,7 @@ class QlikClient:
             return {
                 "sheet_title": sheet_title,
                 "objects": objects,
-                "object_count": len(objects)
+                "object_count": len(objects),
             }
 
         except Exception as e:
@@ -777,14 +777,14 @@ class QlikClient:
         self,
         container_handle: int,
         container_id: str,
-        effective_props: Dict[str, Any],
+        effective_props: dict[str, Any],
         include_properties: bool,
         include_layout: bool,
         include_data_definition: bool,
         resolve_master_items: bool,
-        master_measures_cache: Dict[str, Dict[str, Any]],
-        master_dimensions_cache: Dict[str, Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        master_measures_cache: dict[str, dict[str, Any]],
+        master_dimensions_cache: dict[str, dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """Process and extract embedded objects from a container"""
         embedded_objects = []
 
@@ -839,7 +839,7 @@ class QlikClient:
                                 obj_result = self._send_request(
                                     "GetObject",
                                     self.app_handle,
-                                    [master_item_id]
+                                    [master_item_id],
                                 )
                                 if obj_result and "qReturn" in obj_result:
                                     obj_handle = obj_result["qReturn"]["qHandle"]
@@ -856,7 +856,7 @@ class QlikClient:
                                             include_data_definition,
                                             resolve_master_items,
                                             master_measures_cache,
-                                            master_dimensions_cache
+                                            master_dimensions_cache,
                                         )
                                         if embedded_obj:
                                             embedded_obj["container_tab"] = tab_label
@@ -888,7 +888,7 @@ class QlikClient:
                             include_data_definition,
                             resolve_master_items,
                             master_measures_cache,
-                            master_dimensions_cache
+                            master_dimensions_cache,
                         )
                         if embedded_obj:
                             tab_objects.append(embedded_obj)
@@ -902,7 +902,7 @@ class QlikClient:
                             obj_result = self._send_request(
                                 "GetObject",
                                 self.app_handle,
-                                [obj_id]
+                                [obj_id],
                             )
                             if obj_result and "qReturn" in obj_result:
                                 obj_handle = obj_result["qReturn"]["qHandle"]
@@ -918,7 +918,7 @@ class QlikClient:
                                     include_data_definition,
                                     resolve_master_items,
                                     master_measures_cache,
-                                    master_dimensions_cache
+                                    master_dimensions_cache,
                                 )
                                 if embedded_obj:
                                     tab_objects.append(embedded_obj)
@@ -944,7 +944,7 @@ class QlikClient:
                                     obj_result = self._send_request(
                                         "GetObject",
                                         self.app_handle,
-                                        [child_id]
+                                        [child_id],
                                     )
                                     if obj_result and "qReturn" in obj_result:
                                         obj_handle = obj_result["qReturn"]["qHandle"]
@@ -960,7 +960,7 @@ class QlikClient:
                                             include_data_definition,
                                             resolve_master_items,
                                             master_measures_cache,
-                                            master_dimensions_cache
+                                            master_dimensions_cache,
                                         )
                                         if embedded_obj:
                                             embedded_obj["container_tab"] = "Main"
@@ -979,16 +979,16 @@ class QlikClient:
 
     def _process_embedded_object(
         self,
-        obj_data: Dict[str, Any],
+        obj_data: dict[str, Any],
         container_id: str,
         tab_label: str,
         include_properties: bool,
         include_layout: bool,
         include_data_definition: bool,
         resolve_master_items: bool,
-        master_measures_cache: Dict[str, Dict[str, Any]],
-        master_dimensions_cache: Dict[str, Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+        master_measures_cache: dict[str, dict[str, Any]],
+        master_dimensions_cache: dict[str, dict[str, Any]],
+    ) -> dict[str, Any] | None:
         """Process an embedded object definition from container"""
         try:
             obj_id = obj_data.get("id") or obj_data.get("qId", "")
@@ -1001,7 +1001,7 @@ class QlikClient:
                 "object_id": obj_id,
                 "object_type": obj_type,
                 "parent_container": container_id,
-                "is_embedded": True
+                "is_embedded": True,
             }
 
             # Try to get more details about the object
@@ -1009,7 +1009,7 @@ class QlikClient:
                 obj_result = self._send_request(
                     "GetObject",
                     self.app_handle,
-                    [obj_id]
+                    [obj_id],
                 )
                 if obj_result and "qReturn" in obj_result:
                     obj_handle = obj_result["qReturn"]["qHandle"]
@@ -1025,7 +1025,7 @@ class QlikClient:
                         include_data_definition,
                         resolve_master_items,
                         master_measures_cache,
-                        master_dimensions_cache
+                        master_dimensions_cache,
                     )
             except Exception:
                 pass  # Continue with basic info if detailed fetch fails
@@ -1039,16 +1039,16 @@ class QlikClient:
     def _create_object_from_layout(
         self,
         obj_id: str,
-        obj_layout: Dict[str, Any],
+        obj_layout: dict[str, Any],
         container_id: str,
         tab_label: str,
         include_properties: bool,
         include_layout: bool,
         include_data_definition: bool,
         resolve_master_items: bool,
-        master_measures_cache: Dict[str, Dict[str, Any]],
-        master_dimensions_cache: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        master_measures_cache: dict[str, dict[str, Any]],
+        master_dimensions_cache: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
         """Create object data from layout information"""
         obj_layout_data = obj_layout.get("qLayout", obj_layout) if obj_layout else {}
 
@@ -1056,7 +1056,7 @@ class QlikClient:
             "object_id": obj_id,
             "object_type": obj_layout_data.get("qInfo", {}).get("qType", ""),
             "parent_container": container_id,
-            "is_embedded": True
+            "is_embedded": True,
         }
 
         # Extract title and subtitle
@@ -1079,7 +1079,7 @@ class QlikClient:
                         measure_data = self._process_measure(
                             measure,
                             resolve_master_items,
-                            master_measures_cache
+                            master_measures_cache,
                         )
                         measures.append(measure_data)
 
@@ -1089,7 +1089,7 @@ class QlikClient:
                         dimension_data = self._process_dimension(
                             dimension,
                             resolve_master_items,
-                            master_dimensions_cache
+                            master_dimensions_cache,
                         )
                         dimensions.append(dimension_data)
 
@@ -1108,11 +1108,11 @@ class QlikClient:
 
         return obj
 
-    def _extract_container_structure(self, effective_props: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_container_structure(self, effective_props: dict[str, Any]) -> dict[str, Any]:
         """Extract and simplify container structure from effective properties"""
         structure = {
             "type": "container",
-            "tabs": []
+            "tabs": [],
         }
 
         try:
@@ -1134,7 +1134,7 @@ class QlikClient:
                                 item.get("masterItemId")
                                 for item in master_items
                                 if item.get("masterItemId")
-                            ]
+                            ],
                         }
                         structure["tabs"].append(tab_info)
 
@@ -1155,7 +1155,7 @@ class QlikClient:
                     tab_info = {
                         "label": tab.get("label", ""),
                         "id": tab.get("id", ""),
-                        "object_count": len(tab.get("objects", []))
+                        "object_count": len(tab.get("objects", [])),
                     }
                     structure["tabs"].append(tab_info)
 
@@ -1168,17 +1168,17 @@ class QlikClient:
 
     def _process_measure(
         self,
-        measure: Dict[str, Any],
+        measure: dict[str, Any],
         resolve_master_items: bool,
-        master_measures_cache: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        master_measures_cache: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
         """Process a measure definition, resolving master items if needed"""
         measure_def = measure.get("qDef", {})
         library_id = measure.get("qLibraryId", "")
 
         measure_data = {
             "label": measure_def.get("qLabel", ""),
-            "expression": measure_def.get("qDef", "")
+            "expression": measure_def.get("qDef", ""),
         }
 
         # Check if this is a master measure reference
@@ -1186,7 +1186,7 @@ class QlikClient:
             resolution = self.resolve_master_item_reference(
                 library_id,
                 "measure",
-                master_measures_cache
+                master_measures_cache,
             )
             if resolution.get("resolved"):
                 master_item = resolution.get("master_item", {})
@@ -1203,17 +1203,17 @@ class QlikClient:
 
     def _process_dimension(
         self,
-        dimension: Dict[str, Any],
+        dimension: dict[str, Any],
         resolve_master_items: bool,
-        master_dimensions_cache: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        master_dimensions_cache: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
         """Process a dimension definition, resolving master items if needed"""
         dim_def = dimension.get("qDef", {})
         library_id = dimension.get("qLibraryId", "")
 
         dimension_data = {
             "label": dim_def.get("qLabel", ""),
-            "field": dim_def.get("qFieldDefs", [""])[0] if dim_def.get("qFieldDefs") else ""
+            "field": dim_def.get("qFieldDefs", [""])[0] if dim_def.get("qFieldDefs") else "",
         }
 
         # Check if this is a master dimension reference
@@ -1221,7 +1221,7 @@ class QlikClient:
             resolution = self.resolve_master_item_reference(
                 library_id,
                 "dimension",
-                master_dimensions_cache
+                master_dimensions_cache,
             )
             if resolution.get("resolved"):
                 master_item = resolution.get("master_item", {})
@@ -1238,7 +1238,7 @@ class QlikClient:
 
         return dimension_data
 
-    def get_effective_properties(self, object_handle: int) -> Dict[str, Any]:
+    def get_effective_properties(self, object_handle: int) -> dict[str, Any]:
         """Get effective properties of an object (especially useful for containers)"""
         if not self.ws:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1250,7 +1250,7 @@ class QlikClient:
             print(f"Error getting effective properties: {e}")
             return {}
 
-    def get_master_measures_map(self) -> Dict[str, Dict[str, Any]]:
+    def get_master_measures_map(self) -> dict[str, dict[str, Any]]:
         """Get all master measures and return as a map keyed by ID"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1267,7 +1267,7 @@ class QlikClient:
                         "expression": measure.get("expression", ""),
                         "label": measure.get("label", ""),
                         "title": measure.get("title", ""),
-                        "description": measure.get("description", "")
+                        "description": measure.get("description", ""),
                     }
 
             print(f"Cached {len(measures_map)} master measures")
@@ -1277,7 +1277,7 @@ class QlikClient:
             print(f"Error fetching master measures map: {e}")
             return {}
 
-    def get_master_dimensions_map(self) -> Dict[str, Dict[str, Any]]:
+    def get_master_dimensions_map(self) -> dict[str, dict[str, Any]]:
         """Get all master dimensions and return as a map keyed by ID"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1288,7 +1288,7 @@ class QlikClient:
                 include_title=True,
                 include_tags=False,
                 include_grouping=True,
-                include_info=True
+                include_info=True,
             )
             dimensions_map = {}
 
@@ -1313,7 +1313,7 @@ class QlikClient:
                         "field_definitions": field_defs,
                         "labels": labels,
                         "title": dimension.get("title", ""),
-                        "grouping": dimension.get("grouping", "")
+                        "grouping": dimension.get("grouping", ""),
                     }
 
             print(f"Cached {len(dimensions_map)} master dimensions")
@@ -1327,8 +1327,8 @@ class QlikClient:
         self,
         library_id: str,
         item_type: str,
-        master_items_cache: Dict[str, Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        master_items_cache: dict[str, dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """Resolve a master item reference to its full definition
 
         Args:
@@ -1338,6 +1338,7 @@ class QlikClient:
 
         Returns:
             Dictionary with resolved expression/field definitions
+
         """
         if not library_id:
             return {}
@@ -1350,7 +1351,7 @@ class QlikClient:
                 if library_id in master_items_cache:
                     return {
                         "resolved": True,
-                        "master_item": master_items_cache[library_id]
+                        "master_item": master_items_cache[library_id],
                     }
 
             elif item_type == "dimension":
@@ -1360,7 +1361,7 @@ class QlikClient:
                 if library_id in master_items_cache:
                     return {
                         "resolved": True,
-                        "master_item": master_items_cache[library_id]
+                        "master_item": master_items_cache[library_id],
                     }
 
             return {"resolved": False, "reason": "Master item not found"}
@@ -1374,8 +1375,8 @@ class QlikClient:
         include_title: bool = True,
         include_tags: bool = True,
         include_grouping: bool = True,
-        include_info: bool = True
-    ) -> Dict[str, Any]:
+        include_info: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve all dimensions from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1401,19 +1402,19 @@ class QlikClient:
             create_params = [
                 {
                     "qInfo": {
-                        "qType": "DimensionList"
+                        "qType": "DimensionList",
                     },
                     "qDimensionListDef": {
                         "qType": "dimension",
-                        "qData": q_data
-                    }
-                }
+                        "qData": q_data,
+                    },
+                },
             ]
 
             create_result = self._send_request(
                 "CreateSessionObject",
                 self.app_handle,
-                create_params
+                create_params,
             )
 
             if not create_result or "qReturn" not in create_result:
@@ -1440,7 +1441,7 @@ class QlikClient:
 
                     dimension = {
                         "dimension_id": q_info.get("qId", ""),
-                        "name": q_meta.get("title", q_info.get("qId", ""))
+                        "name": q_meta.get("title", q_info.get("qId", "")),
                     }
 
                     if include_title:
@@ -1470,14 +1471,14 @@ class QlikClient:
 
             return {
                 "dimensions": dimensions,
-                "dimension_count": len(dimensions)
+                "dimension_count": len(dimensions),
             }
 
         except Exception as e:
             print(f"Error retrieving dimensions: {e}")
             raise
 
-    def get_script(self) -> Dict[str, Any]:
+    def get_script(self) -> dict[str, Any]:
         """Retrieve the script from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1498,7 +1499,7 @@ class QlikClient:
 
             return {
                 "script": script_content,
-                "script_length": len(script_content)
+                "script_length": len(script_content),
             }
 
         except Exception as e:
@@ -1510,8 +1511,8 @@ class QlikClient:
         include_resident: bool = True,
         include_file_sources: bool = True,
         include_binary_sources: bool = True,
-        include_inline_sources: bool = True
-    ) -> Dict[str, Any]:
+        include_inline_sources: bool = True,
+    ) -> dict[str, Any]:
         """Retrieve data sources lineage from the current app"""
         if not self.ws or not self.app_handle:
             raise ConnectionError("Not connected to Qlik Engine")
@@ -1537,7 +1538,7 @@ class QlikClient:
                 "resident": [],
                 "file": [],
                 "inline": [],
-                "other": []
+                "other": [],
             }
 
             for item in lineage_data:
@@ -1548,7 +1549,7 @@ class QlikClient:
                 source = {
                     "discriminator": discriminator,
                     "statement": statement if statement else None,
-                    "type": self._categorize_data_source(discriminator, statement)
+                    "type": self._categorize_data_source(discriminator, statement),
                 }
 
                 # Apply filters based on include options
@@ -1572,9 +1573,9 @@ class QlikClient:
                     "resident_count": len(categories["resident"]),
                     "file_count": len(categories["file"]),
                     "inline_count": len(categories["inline"]),
-                    "other_count": len(categories["other"])
+                    "other_count": len(categories["other"]),
                 },
-                "by_category": categories
+                "by_category": categories,
             }
 
         except Exception as e:
@@ -1599,14 +1600,14 @@ class QlikClient:
 
         # Check for file sources (paths, URLs, etc.)
         if any(indicator in discriminator_lower for indicator in [
-            "\\", "/", ".", "lib://", "http://", "https://", "ftp://", ".txt", ".csv", ".xlsx", ".qvd"
+            "\\", "/", ".", "lib://", "http://", "https://", "ftp://", ".txt", ".csv", ".xlsx", ".qvd",
         ]):
             return "file"
 
         # Everything else
         return "other"
 
-    def _send_request(self, method: str, handle: int = -1, params: Optional[Any] = None) -> Dict[str, Any]:
+    def _send_request(self, method: str, handle: int = -1, params: Any | None = None) -> dict[str, Any]:
         """Send JSON-RPC request and wait for response"""
         if not self.ws:
             raise ConnectionError("WebSocket is not connected")
@@ -1621,7 +1622,7 @@ class QlikClient:
                 "id": self.request_id,
                 "method": method,
                 "handle": handle,
-                "params": params
+                "params": params,
             }
         elif method == "GetObject" and isinstance(params, list):
             # GetObject expects array params directly
@@ -1630,7 +1631,7 @@ class QlikClient:
                 "id": self.request_id,
                 "method": method,
                 "handle": handle,
-                "params": params
+                "params": params,
             }
         elif method == "OpenDoc" and isinstance(params, dict) and "qDocName" in params:
             # OpenDoc expects array with just the doc name
@@ -1639,7 +1640,7 @@ class QlikClient:
                 "id": self.request_id,
                 "method": method,
                 "handle": handle,
-                "params": [params["qDocName"]]
+                "params": [params["qDocName"]],
             }
         else:
             request = {
@@ -1647,7 +1648,7 @@ class QlikClient:
                 "id": self.request_id,
                 "method": method,
                 "handle": handle,
-                "params": params if params is not None else {}
+                "params": params if params is not None else {},
             }
 
         # Send request
@@ -1655,7 +1656,7 @@ class QlikClient:
         self.ws.send(request_json)
 
         # Set receive timeout
-        if hasattr(self.ws, 'sock') and self.ws.sock:
+        if hasattr(self.ws, "sock") and self.ws.sock:
             self.ws.sock.settimeout(self.recv_timeout)
 
         # Wait for response
@@ -1692,16 +1693,15 @@ def test_connection():
             result = client.get_measures(include_expression=True, include_tags=True)
 
             print(f"\n📊 Found {result['count']} measures:")
-            for measure in result['measures'][:5]:  # Show first 5
+            for measure in result["measures"][:5]:  # Show first 5
                 print(f"  - {measure['title']} (ID: {measure['id']})")
-                if measure.get('expression'):
+                if measure.get("expression"):
                     print(f"    Expression: {measure['expression'][:50]}...")
 
             client.disconnect()
             return True
-        else:
-            print("❌ Connection failed")
-            return False
+        print("❌ Connection failed")
+        return False
 
     except Exception as e:
         print(f"❌ Test failed: {e}")

@@ -11,6 +11,8 @@ This directory contains the comprehensive test suite for the Qlik MCP Server, bu
 uv sync  # This installs both main and dev dependencies including pytest
 ```
 
+> **Note:** Test files follow pytest conventions and cannot be run directly with Python. All tests must be executed using pytest.
+
 2. Configure test environment:
 ```bash
 cp .env.test.example .env.test
@@ -140,8 +142,11 @@ TEST_TIMEOUT=30              # Test timeout in seconds
 ### Basic Test Structure
 
 ```python
+"""Test module for your feature"""
+
 import pytest
 from src.tools import your_function
+
 
 @pytest.mark.asyncio
 @pytest.mark.unit
@@ -151,6 +156,7 @@ async def test_your_function_mock(mock_data_fixture):
     assert result is not None
     assert "expected_key" in result
 
+
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_your_function_live(test_app_id, skip_without_qlik):
@@ -159,6 +165,8 @@ async def test_your_function_live(test_app_id, skip_without_qlik):
     assert result is not None
     assert result["app_id"] == test_app_id
 ```
+
+> **Important:** Do not include shebangs (`#!/usr/bin/env python3`) or `if __name__ == "__main__":` blocks in test files. Tests should only be run via pytest.
 
 ### Adding Mock Fixtures
 
@@ -248,25 +256,30 @@ See `.github/workflows/test.yml` for configuration.
 
 ## 🎯 Best Practices
 
-1. **Always write both unit and integration tests**
+1. **Follow pytest conventions**
+   - No shebangs or main blocks in test files
+   - Tests must be run via pytest, not directly with Python
+   - Use proper test naming: `test_*.py` files, `test_*` functions
+
+2. **Always write both unit and integration tests**
    - Unit tests ensure code quality without external dependencies
    - Integration tests verify actual Qlik interactions
 
-2. **Use fixtures for shared setup**
+3. **Use fixtures for shared setup**
    - Avoid duplicating setup code
    - Fixtures provide consistent test data
 
-3. **Mark tests appropriately**
+4. **Mark tests appropriately**
    - Use `@pytest.mark.unit` for offline tests
    - Use `@pytest.mark.integration` for Qlik-dependent tests
    - Use `@pytest.mark.slow` for long-running tests
 
-4. **Test error cases**
+5. **Test error cases**
    - Test invalid inputs
    - Test connection failures
    - Test empty responses
 
-5. **Keep tests independent**
+6. **Keep tests independent**
    - Each test should be runnable in isolation
    - Don't depend on test execution order
 

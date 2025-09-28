@@ -16,17 +16,12 @@ cp .env.example .env                  # Configure Qlik server details
 # Run server
 uv run python -m src.server           # Start MCP server
 
-# Test with pytest (recommended)
+# Test with pytest
 uv run pytest                           # Run all tests
 uv run pytest -v                        # Verbose output
 uv run pytest -m unit                   # Unit tests only (no Qlik needed)
 uv run pytest -m integration            # Integration tests (requires Qlik)
 uv run pytest --cov=src                 # With coverage report
-
-# Legacy: Test individual files directly
-uv run python tests/test_qlik_connection.py    # Test basic connection
-uv run python tests/test_list_apps.py          # Test app listing
-uv run python tests/test_mcp_tool.py           # Test measures and MCP integration
 
 # Debug WebSocket client
 uv run python -m src.qlik_client
@@ -107,12 +102,13 @@ Enhanced object extraction from VizlibContainer visualizations:
 
 ## Testing
 
-Run individual test files to verify functionality:
+Run tests using pytest to verify functionality:
 
-- Connection: `uv run python tests/test_qlik_connection.py`
-- Applications: `uv run python tests/test_list_apps.py`
-- All tools: `uv run python tests/test_mcp_tool.py`
-- Specific features: `uv run python tests/test_script.py`, `test_vizlib_container.py`, etc.
+- All tests: `uv run pytest`
+- Specific test file: `uv run pytest tests/test_qlik_connection.py`
+- Integration tests only: `uv run pytest -m integration`
+- Unit tests only: `uv run pytest -m unit`
+- With coverage: `uv run pytest --cov=src`
 
 ## Key Implementation Notes
 
