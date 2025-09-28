@@ -58,11 +58,17 @@ logs/
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
+coverage.json
 htmlcov/
 .tox/
 .hypothesis/
 test_*.json
 *_output.json
+.env.test
+pytest-report.xml
+bandit-report.json
 
 # MCP specific
 .mcp/

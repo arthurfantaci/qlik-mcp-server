@@ -817,7 +817,45 @@ qlik-mcp-server/
 
 ### Running Tests
 
-Comprehensive test suite for all tools:
+The project uses pytest for comprehensive testing with support for both unit and integration tests.
+
+#### Setup Test Environment
+
+```bash
+# Install test dependencies
+uv sync  # Installs both main and dev dependencies including pytest
+
+# Configure test environment
+cp .env.test.example .env.test
+# Edit .env.test with your Qlik server details (when available)
+```
+
+#### Running Tests with Pytest
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run only unit tests (no Qlik server required)
+uv run pytest -m unit
+
+# Run integration tests (requires Qlik server)
+uv run pytest -m integration
+
+# Run with coverage report
+uv run pytest --cov=src --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_mcp_tool.py
+
+# Run specific test
+uv run pytest tests/test_mcp_tool.py::test_get_app_measures_mock
+```
+
+#### Legacy Test Commands (for individual file execution)
 
 ```bash
 # Test basic Qlik connection
@@ -841,6 +879,8 @@ python tests/test_both_tools.py         # Multiple tools together
 # Test Qlik client directly
 python -m src.qlik_client
 ```
+
+See [tests/README.md](tests/README.md) for comprehensive testing documentation.
 
 ### Adding New Tools
 

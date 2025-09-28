@@ -1,0 +1,139 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      run_integration_tests:
+        description: 'Run integration tests'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync
+
+    - name: Lint with ruff
+      run: |
+        uv run ruff check src tests
+
+    - name: Run unit tests
+      run: |
+        uv run pytest -m unit -v --cov=src --cov-report=xml --cov-report=term-missing
+
+    - name: Run integration tests
+      if: github.event.inputs.run_integration_tests == 'true'
+      env:
+        SKIP_INTEGRATION_TESTS: false
+        QLIK_SERVER_URL: ${{ secrets.QLIK_SERVER_URL }}
+        QLIK_SERVER_PORT: ${{ secrets.QLIK_SERVER_PORT }}
+        QLIK_USER_DIRECTORY: ${{ secrets.QLIK_USER_DIRECTORY }}
+        QLIK_USER_ID: ${{ secrets.QLIK_USER_ID }}
+      run: |
+        uv run pytest -m integration -v
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Generate coverage badge
+      if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main'
+      run: |
+        uv run pytest --cov=src --cov-report=json
+        export TOTAL=$(python -c "import json;print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
+        echo "COVERAGE=$TOTAL" >> $GITHUB_ENV
+
+  test-minimal:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install UV (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install UV (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        irm https://astral.sh/uv/install.ps1 | iex
+        echo "$env:USERPROFILE\.cargo\bin" >> $env:GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync
+
+    - name: Run basic tests
+      run: |
+        uv run pytest -m unit -v --tb=short
+
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync
+        uv pip install safety bandit
+
+    - name: Security scan with safety
+      continue-on-error: true
+      run: |
+        uv run safety check --json
+
+    - name: Security scan with bandit
+      continue-on-error: true
+      run: |
+        uv run bandit -r src -f json -o bandit-report.json
